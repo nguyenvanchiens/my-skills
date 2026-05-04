@@ -106,14 +106,24 @@ Skill này không phải `/slash command` mà kích hoạt bằng **trigger phra
 
 ```
 1. create branch from task WRA-40 giới hạn domain account
-2. (paste mô tả task) → Claude code
+2. (paste mô tả task)              → Claude code
 3. review the last change          → fix nếu cần
 4. commit and push
 5. create a merge request
-6. (reviewer khác) review the MR !21 → post review result to the MR
-7. fix all issues                  → tự commit + push
-8. merge the request
+
+   --- chuyển sang vai Reviewer ---
+
+6. review the MR !21               → Claude in review ra terminal (chưa lên GitLab)
+7. (đọc, chỉnh nếu cần)
+8. post review result to the MR    → mới đẩy comment lên GitLab
+
+   --- quay lại vai Developer ---
+
+9. fix all issues                  → tự commit + push
+10. merge the request
 ```
+
+> **Lưu ý**: bước 6 và 8 là **2 prompt riêng**, không tự động nối. Mục đích để reviewer xem trước nội dung review, có thể yêu cầu Claude bổ sung/sửa, mới quyết định post lên MR.
 
 ### Convention
 
