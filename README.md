@@ -10,6 +10,7 @@ Bộ sưu tập skills cá nhân cho Claude Code và các AI coding harness khá
 | [`impeccable`](skills/impeccable/) | Hệ thống thiết kế frontend chuyên sâu (typography, color, spatial, motion, interaction, responsive, UX writing). Bao gồm 23 command như `/craft`, `/polish`, `/critique`, `/audit`, `/animate`. | [pbakaus/impeccable](https://github.com/pbakaus/impeccable) | Apache-2.0 |
 | [`commit`](skills/commit/) | Tạo commit theo Conventional Commits với Jira ID đứng đầu dòng subject (`/commit WRA-9`). Tự phân tích diff, chọn `type`/`scope`, soạn message tiếng Việt. | Nội bộ | MIT |
 | [`review-branch`](skills/review-branch/) | Review toàn bộ thay đổi của branch hiện tại so với `main` (committed + uncommitted) qua 3 agent song song: reuse, quality, efficiency — rồi tự fix issue. | Nội bộ | MIT |
+| [`gitlab-flow`](skills/gitlab-flow/) | Quy trình end-to-end Jira → branch → commit → MR → review → fix → merge dùng `glab`. Chuẩn hoá branch naming, commit format và safety rules cho team GitLab. | Nội bộ | MIT |
 
 ## Cài đặt
 
@@ -44,6 +45,7 @@ npx skills add nguyenvanchiens/my-skills -s karpathy-guidelines -y -a claude-cod
 npx skills add nguyenvanchiens/my-skills -s impeccable        -y -a claude-code --copy
 npx skills add nguyenvanchiens/my-skills -s commit            -y -a claude-code --copy
 npx skills add nguyenvanchiens/my-skills -s review-branch     -y -a claude-code --copy
+npx skills add nguyenvanchiens/my-skills -s gitlab-flow       -y -a claude-code --copy
 ```
 
 Cài nhiều skill cùng lúc (lặp cờ `-s`):
@@ -94,7 +96,9 @@ my-skills/
     │   └── scripts/
     ├── commit/
     │   └── SKILL.md
-    └── review-branch/
+    ├── review-branch/
+    │   └── SKILL.md
+    └── gitlab-flow/
         └── SKILL.md
 ```
 
