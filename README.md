@@ -21,12 +21,16 @@ Yêu cầu: Node.js (để dùng `npx`).
 npx skills add nguyenvanchiens/my-skills --all -a claude-code --copy
 ```
 
+### Cài riêng cho Claude
+```bash
+npx skills add nguyenvanchiens/my-skills -s "*" -y -a claude-code --copy
+```
+
 ### Cài global (dùng cho mọi project)
 
 ```bash
 npx skills add nguyenvanchiens/my-skills --all -g -a claude-code --copy
 ```
-
 ### Cài chọn lọc
 
 Liệt kê skills có trong repo:
