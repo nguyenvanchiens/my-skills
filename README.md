@@ -78,6 +78,58 @@ npx skills add nguyenvanchiens/my-skills --all -a cursor --copy
 npx skills add nguyenvanchiens/my-skills --all -a "*" --copy
 ```
 
+## Sử dụng `gitlab-flow`
+
+Skill này không phải `/slash command` mà kích hoạt bằng **trigger phrase tiếng Anh** trong prompt thường. Claude tự match phrase và chạy procedure tương ứng.
+
+### Yêu cầu trước khi dùng
+
+- `git` (luôn có)
+- [`glab`](https://gitlab.com/gitlab-org/cli) — GitLab CLI. Trên Windows: `winget install GLab.GLab`
+- Đăng nhập 1 lần: `glab auth login --hostname <gitlab-host>` (token scope `api` + `write_repository`)
+
+### Bảng trigger
+
+| Prompt | Hành động |
+|---|---|
+| `create branch from task <TASK-ID>` | Pull `main`, tạo nhánh `feature/<TASK-ID>-<desc>` theo convention |
+| (paste mô tả task Jira) | Đọc scope, sinh code theo convention project |
+| `review the last change` | Chạy `git diff`, list issues `#1`, `#2`... |
+| `commit and push` | Commit `<type>(<scope>): <subject> [<TASK-ID>]` rồi push |
+| `create a merge request` | `glab mr create` với title/description chuẩn |
+| `review the MR !<N>` | `glab mr diff <N>`, list issues, verdict APPROVE/REQUEST_CHANGES |
+| `post review result to the MR` | `glab mr note` đăng comment Markdown |
+| `fix all issues` / `fix issue #<N>` | Fix → commit `fix(<scope>): address review issues #N [<TASK-ID>]` → push |
+| `merge the request` | Check approve + CI pass → `glab mr merge --squash --remove-source-branch` |
+
+### Flow điển hình end-to-end
+
+```
+1. create branch from task WRA-40 giới hạn domain account
+2. (paste mô tả task) → Claude code
+3. review the last change          → fix nếu cần
+4. commit and push
+5. create a merge request
+6. (reviewer khác) review the MR !21 → post review result to the MR
+7. fix all issues                  → tự commit + push
+8. merge the request
+```
+
+### Convention
+
+- **Branch**: `feature/<TASK-ID>-<desc>` | `bugfix/<TASK-ID>-<desc>` | `hotfix/<TASK-ID>-<desc>`
+- **Commit**: `<type>(<scope>): <subject> [<TASK-ID>]` (vd `feat(auth): restrict login to allowed domains [WRA-40]`)
+- **Target branch**: mặc định `main` — nếu repo dùng `master`, thêm dòng vào `CLAUDE.md` của project: `Default branch: master (not main)`
+
+### Safety rules
+
+- KHÔNG force push vào nhánh đã có MR mở
+- KHÔNG merge thẳng vào `main` từ local — luôn qua MR
+- KHÔNG bypass hooks (`--no-verify`) trừ khi user yêu cầu rõ
+- KHÔNG commit secrets (`.env`, key, token, password)
+
+Xem chi tiết đầy đủ ở [`skills/gitlab-flow/SKILL.md`](skills/gitlab-flow/SKILL.md).
+
 ## Cấu trúc repo
 
 ```
