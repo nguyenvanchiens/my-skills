@@ -80,8 +80,8 @@ Quy trình chuẩn cho một feature/bugfix mới. Có 2 vai trò: **Developer**
 
 ### "review the MR !<N>" (vai trò Reviewer)
 1. Yêu cầu `glab` CLI đã cài: kiểm tra `glab --version`
-2. Lấy thông tin MR: `glab mr view <N> --json`
-3. Lấy diff: `glab mr diff <N>`
+2. Lấy thông tin MR: `glab mr view <N>`
+3. **BẮT BUỘC** lấy diff từ remote bằng `glab mr diff <N>`. **KHÔNG** thay thế bằng `git diff <base>...<source>` so với branch local — `main` (hoặc base) ở local có thể stale, dẫn tới review nhầm hàng trăm commits đã có sẵn trên remote. Nếu thực sự cần dùng `git diff` (vd để lấy stat), phải `git fetch origin <base-branch>` trước rồi so với `origin/<base-branch>`, không phải branch local.
 4. Review theo cùng tiêu chí ở mục "review the last change"
 5. Liệt kê issues theo dạng `#1`, `#2`, ...; mỗi issue cần có:
    - File + dòng
