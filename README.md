@@ -8,7 +8,7 @@ Bộ sưu tập skills cá nhân cho Claude Code và các AI coding harness khá
 |---|---|---|---|
 | [`karpathy-guidelines`](skills/karpathy-guidelines/) | 4 nguyên tắc giảm lỗi LLM khi code (Think Before Coding, Simplicity First, Surgical Changes, Goal-Driven Execution). | [forrestchang/andrej-karpathy-skills](https://github.com/forrestchang/andrej-karpathy-skills) | MIT |
 | [`impeccable`](skills/impeccable/) | Hệ thống thiết kế frontend chuyên sâu (typography, color, spatial, motion, interaction, responsive, UX writing). Bao gồm 23 command như `/craft`, `/polish`, `/critique`, `/audit`, `/animate`. | [pbakaus/impeccable](https://github.com/pbakaus/impeccable) | Apache-2.0 |
-| [`commit`](skills/commit/) | Tạo commit theo Conventional Commits với Jira ID đứng đầu dòng subject (`/commit WRA-9`). Tự phân tích diff, chọn `type`/`scope`, soạn message tiếng Việt. | Nội bộ | MIT |
+| [`commit`](skills/commit/) | Tạo commit theo Conventional Commits, Jira ID ở cuối subject trong ngoặc đơn `(WRA-9)` (`/commit WRA-9`). Tự phân tích diff, chọn `type`/`scope`, có `--quick` mode, partial-staging guard, đọc `.commit-scopes` allowlist. | Nội bộ | MIT |
 | [`review-branch`](skills/review-branch/) | Review toàn bộ thay đổi của branch hiện tại so với `main` (committed + uncommitted) qua 3 agent song song: reuse, quality, efficiency — rồi tự fix issue. | Nội bộ | MIT |
 | [`gitlab-flow`](skills/gitlab-flow/) | Quy trình end-to-end Jira → branch → commit → MR → review → fix → merge dùng `glab`. Chuẩn hoá branch naming, commit format và safety rules cho team GitLab. | Nội bộ | MIT |
 
@@ -78,6 +78,115 @@ npx skills add nguyenvanchiens/my-skills --all -a cursor --copy
 npx skills add nguyenvanchiens/my-skills --all -a "*" --copy
 ```
 
+## Sử dụng `commit`
+
+Trigger bằng slash command `/commit <JIRA-ID>` (kèm `--quick` nếu cần). Skill probe repo state, kiểm tra atomic, soạn message theo Conventional Commits với Jira ID ở cuối subject.
+
+### Yêu cầu trước khi dùng
+
+- `git` (luôn có)
+- File `.commit-scopes` ở root repo (optional, recommended) — text plain, mỗi dòng 1 scope (vd `auth`, `billing`, `admin-jobs`). Skill đọc file này làm scope allowlist; không có file thì skip phần scope.
+
+### Bảng trigger
+
+| Prompt | Hành động |
+|---|---|
+| `/commit WRA-9` | Probe repo → atomic check → compose message → commit theo `<type>(<scope>): <subject> (WRA-9)` |
+| `/commit WRA-9 --quick` | Quick mode: bỏ scope, không body, header ≤72 chars (cho hotfix, typo, dep bump) |
+| User nói "commit nhanh" / "tạm" / "fast" | Skill chủ động suggest dùng `--quick` trước khi commit |
+
+### Format
+
+**Bình thường**:
+```
+<type>(<scope>): <subject> (<JIRA-ID>)
+
+<body tùy chọn — explain WHY, không lặp lại WHAT>
+```
+
+**Quick mode**:
+```
+<type>: <subject> (<JIRA-ID>)
+```
+
+**Breaking change**:
+```
+<type>(<scope>)!: <subject> (<JIRA-ID>)
+
+BREAKING CHANGE: <mô tả impact + migration>
+```
+
+**WIP / Spike**:
+```
+chore: wip <desc> (<JIRA-ID>)
+chore: spike <desc> (<JIRA-ID>)
+```
+
+### Allowed types
+
+| Type | Ý nghĩa | Version bump |
+|---|---|---|
+| `feat` | Tính năng mới | MINOR (1.X.0) |
+| `fix` | Sửa bug | PATCH (1.0.X) |
+| `perf` | Cải thiện performance | PATCH |
+| `refactor` | Refactor không đổi behavior | — |
+| `docs` | Tài liệu | — |
+| `test` | Thêm/sửa test | — |
+| `build` | Build system / dependency / packaging | — |
+| `style` | Format code (whitespace, lint) | — |
+| `chore` | Maintenance, không fit type khác | — |
+| `ci` | CI/CD config | — |
+| `revert` | Revert commit cũ | — |
+
+> Breaking change là *modifier* (suffix `!` hoặc footer `BREAKING CHANGE:`), không phải type → MAJOR bump (X.0.0).
+
+### Safety rules
+
+- **STOP, ask user** khi: file vừa staged vừa unstaged (partial-staging), thay đổi spans ≥2 module unrelated, không chắc `type`/`scope`
+- **Không tự `git add`** unstaged hunks — user có thể cố ý dùng `git add -p`
+- **Không tự chèn `Co-Authored-By:`** — repo không track AI authorship
+- **Pre-commit hook fail** → fix nguyên nhân + tạo commit MỚI (không `--amend`)
+- **Không invent generic scope** (`core`, `misc`) — drop scope luôn nếu không có scope phù hợp
+
+Xem chi tiết đầy đủ ở [`skills/commit/SKILL.md`](skills/commit/SKILL.md).
+
+## Sử dụng `review-branch`
+
+Trigger bằng slash command `/review-branch` (không args). Review TOÀN BỘ thay đổi của branch hiện tại so với `main` — committed + uncommitted — qua 3 agent song song, rồi tự fix issues.
+
+### Yêu cầu trước khi dùng
+
+- Đứng ở branch khác `main` (nếu đang ở `main`, skill stop với thông báo "không có gì để review")
+- Có ít nhất 1 commit hoặc thay đổi working tree để review
+
+### Flow 3 phase
+
+**Phase 1 — Identify changes**: chạy `git merge-base main HEAD`, lấy diff cumulative (commit + working tree) ghi vào temp file để các agent đọc mà không flood context.
+
+**Phase 2 — 3 agent chạy song song**:
+
+| Agent | Tập trung | Ví dụ flag |
+|---|---|---|
+| **Code Reuse** | Tìm utility/helper đã có để thay function mới viết | New util duplicates existing helper; inline logic could use existing util |
+| **Code Quality** | Hacky patterns | Redundant state, parameter sprawl, copy-paste, leaky abstraction, stringly-typed, nested conditionals 3+ levels, unnecessary comments explaining WHAT |
+| **Efficiency** | Performance/resource | N+1, missed concurrency, hot-path bloat, no-op updates trong polling, TOCTOU pre-check, memory leak |
+
+**Phase 3 — Fix issues**: aggregate findings từ 3 agents, fix trực tiếp trong working tree. False positive thì skip, không cãi. **Không tự commit/push** — để user review trước.
+
+### Khi nào dùng
+
+- ✅ Sau khi finish feature branch, **trước khi mở MR**
+- ✅ Sau mỗi vài commit có ý nghĩa (đỡ phải review diff lớn)
+- ❌ Chỉ muốn review uncommitted (bỏ qua commit đã có) → dùng `/simplify` thay thế
+
+### Lưu ý
+
+- Diff > 2000 dòng → review có thể coarse-grained. Nên chạy sớm (sau mỗi commit) thay vì để dồn cuối branch.
+- Repo dùng `master`/`develop` thay `main` → skill hỏi 1 lần rồi dùng tên đó.
+- Skill **không commit** — sau khi fix, bạn phải tự `/commit <JIRA-ID>` để giữ control.
+
+Xem chi tiết đầy đủ ở [`skills/review-branch/SKILL.md`](skills/review-branch/SKILL.md).
+
 ## Sử dụng `gitlab-flow`
 
 Skill này không phải `/slash command` mà kích hoạt bằng **trigger phrase tiếng Anh** trong prompt thường. Claude tự match phrase và chạy procedure tương ứng.
@@ -95,11 +204,11 @@ Skill này không phải `/slash command` mà kích hoạt bằng **trigger phra
 | `create branch from task <TASK-ID>` | Pull `main`, tạo nhánh `feature/<TASK-ID>-<desc>` theo convention |
 | (paste mô tả task Jira) | Đọc scope, sinh code theo convention project |
 | `review the last change` | Chạy `git diff`, list issues `#1`, `#2`... |
-| `commit and push` | Commit `<type>(<scope>): <subject> [<TASK-ID>]` rồi push |
+| `commit and push` | Commit `<type>(<scope>): <subject> (<TASK-ID>)` rồi push |
 | `create a merge request` | `glab mr create` với title/description chuẩn |
 | `review the MR !<N>` | `glab mr diff <N>`, list issues, verdict APPROVE/REQUEST_CHANGES |
 | `post review result to the MR` | `glab mr note` đăng comment Markdown |
-| `fix all issues` / `fix issue #<N>` | Fix → commit `fix(<scope>): address review issues #N [<TASK-ID>]` → push |
+| `fix all issues` / `fix issue #<N>` | Fix → commit `fix(<scope>): address review issues #N (<TASK-ID>)` → push |
 | `merge the request` | Check approve + CI pass → `glab mr merge --squash --remove-source-branch` |
 
 ### Flow điển hình end-to-end
@@ -128,7 +237,7 @@ Skill này không phải `/slash command` mà kích hoạt bằng **trigger phra
 ### Convention
 
 - **Branch**: `feature/<TASK-ID>-<desc>` | `bugfix/<TASK-ID>-<desc>` | `hotfix/<TASK-ID>-<desc>`
-- **Commit**: `<type>(<scope>): <subject> [<TASK-ID>]` (vd `feat(auth): restrict login to allowed domains [WRA-40]`)
+- **Commit**: `<type>(<scope>): <subject> (<TASK-ID>)` (vd `feat(auth): restrict login to allowed domains (WRA-40)`)
 - **Target branch**: mặc định `main` — nếu repo dùng `master`, thêm dòng vào `CLAUDE.md` của project: `Default branch: master (not main)`
 
 ### Safety rules

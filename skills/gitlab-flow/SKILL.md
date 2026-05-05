@@ -16,9 +16,9 @@ Quy trình chuẩn cho một feature/bugfix mới. Có 2 vai trò: **Developer**
 - Mô tả ngắn gọn, không dấu, dùng `-` ngăn cách. Ví dụ: `feature/WRA-40-Gioi-han-domain-account`
 
 ### Commit message
-- Format: `<type>(<scope>): <subject> [<TASK-ID>]`
+- Format: `<type>(<scope>): <subject> (<TASK-ID>)`
 - type: `feat | fix | refactor | chore | docs | test | style`
-- Ví dụ: `feat(auth): restrict login to allowed domains [WRA-40]`
+- Ví dụ: `feat(auth): restrict login to allowed domains (WRA-40)`
 - Body (tuỳ chọn): giải thích **why**, không lặp lại what
 - Trailer: `Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>`
 
@@ -109,7 +109,7 @@ Quy trình chuẩn cho một feature/bugfix mới. Có 2 vai trò: **Developer**
 3. Nếu "fix all" → fix tất cả
 4. Sau mỗi fix, verify ngắn (chạy test/build nếu có)
 5. Khi hoàn tất, tự động chạy luôn flow "Commit and push" với commit message dạng:
-   `fix(<scope>): address review issues #1,#2 [<TASK-ID>]`
+   `fix(<scope>): address review issues #1,#2 (<TASK-ID>)`
 6. Báo lại hash commit và xác nhận đã push
 
 ### "merge the request"

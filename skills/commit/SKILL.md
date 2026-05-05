@@ -1,104 +1,280 @@
 ---
 name: commit
-description: Commit staged + working-tree changes following Conventional Commits, with the Jira ID as the first token on the subject line. Takes the Jira ID as an argument, e.g. `/commit WRA-9`.
+description: Commit staged + working-tree changes following Conventional Commits, with the Jira ID appended in parentheses at the end of the subject line. Takes the Jira ID as an argument, e.g. `/commit WRA-9`.
 ---
 
-# Commit theo Conventional Commits + Jira ID
+# Commit — Conventional Commits + Jira ID
 
-Lấy Jira ID từ tham số của skill (`args`). Ví dụ: `/commit WRA-9` → `args = "WRA-9"`. Nếu `args` trống, dừng lại và hỏi người dùng Jira ID trước khi làm tiếp.
+Spec: <https://www.conventionalcommits.org/en/v1.0.0/>
 
-## Quy trình
+## Inputs
 
-1. **Kiểm tra trạng thái repo** — chạy song song (một message, nhiều tool call):
-   - `git status` (KHÔNG dùng cờ `-uall`)
-   - `git diff HEAD` (bao gồm cả phần đã staged và phần chưa staged — mọi thứ sẽ được commit)
-   - `git log -n 5 --oneline` để nắm convention hiện tại của repo
+| Input | Rule |
+|-------|------|
+| `args` | First token = Jira ID. Empty → STOP, ask user. |
+| Jira ID pattern | `[A-Z][A-Z0-9]+-\d+` (e.g. `WRA-46`, `IT-12141`, `ERP-3079`) |
+| `--quick` flag | If present in `args` → see [Quick mode](#quick-mode) |
+| Repo language | Vietnamese (per `git log`) — applies to `subject` + `body` |
+| Meta-rule | Editing this skill itself uses the same skill: `chore(skill): … (WRA-XX)` — no exception |
 
-2. **Nếu không có thay đổi nào (không có file untracked và không có modification), KHÔNG tạo commit rỗng.** Báo cho người dùng và dừng.
+## Behavior
 
-3. **Phân tích thay đổi** và soạn commit message:
-   - Xác định `type` từ bảng bên dưới dựa trên bản chất thay đổi thực tế.
-   - Chọn `scope` ngắn gọn (thường là tên module / thư mục chính bị ảnh hưởng, ví dụ `auth`, `admin`, `reports`). Có thể bỏ `scope` nếu đổi trải rộng nhiều module.
-   - **Jira ID BẮT BUỘC nằm ở vị trí đầu tiên của dòng summary**, trước cả `<type>`. Format: `<JIRA-ID> <type>(<scope>): <subject>`. Không lặp lại Jira ID ở footer.
-   - `subject` viết ngắn, imperative (dạng mệnh lệnh), **KHÔNG** chấm cuối, ưu tiên tiếng Việt nếu các commit trước trong repo đang dùng tiếng Việt (kiểm tra `git log`).
-   - `body` (tùy chọn) giải thích *why* hơn là *what*; tránh mô tả chi tiết diff.
-   - Nếu là breaking change, thêm `!` sau `type(scope)` (vd `feat(api)!:`) và thêm footer `BREAKING CHANGE: <mô tả>`.
+| Rule | Detail |
+|------|--------|
+| Probe before deciding | Always run Step 1 in full — don't skip even for trivial-looking commits |
+| Never guess `type` / `scope` | Uncertain → STOP, ask user. No coin-flip, no guessing |
+| Quality > speed | One confirmation question beats one wrong-shaped commit |
+| Detect "quick commit" intent | User says "nhanh" / "quick" / "tạm" / "small" / "fast" → suggest `--quick` before committing |
 
-4. **Không commit các file có khả năng chứa secrets** (`.env`, `credentials.json`, key files, v.v.). Nếu người dùng chủ động yêu cầu commit các file này, cảnh báo trước.
+## Process
 
-5. **Stage đúng file cần thiết** — liệt kê từng file bằng tên thay vì `git add -A` / `git add .` để tránh lôi nhầm file nhạy cảm hay binary lớn.
+### Step 1 — Probe repo state (parallel calls in one message)
 
-6. **Tạo commit** bằng HEREDOC để giữ format. `<scope>` là tùy chọn — nếu thay đổi trải rộng nhiều module thì bỏ luôn phần `(<scope>)`:
+| Call | Purpose |
+|------|---------|
+| `git status` (no `-uall`) | Untracked + modified files |
+| `git diff --cached` | Staged hunks only |
+| `git diff` | Unstaged hunks only — separated to detect partial-staging |
+| `cat "$(git rev-parse --show-toplevel)/.commit-scopes"` | Scope allowlist (works from any subdir) |
+
+### Step 2 — Partial-staging guard
+
+| When | Action |
+|------|--------|
+| File appears in both index and worktree (`MM` in `git status`) | STOP, ask user |
+| User: commit staged-only | Proceed with current index |
+| User: stage rest then combine | `git add <files>` then commit |
+| Default | Never auto-`git add` unstaged hunks (user may have intentionally `git add -p`'d) |
+
+### Step 3 — Atomic check
+
+| When | Action |
+|------|--------|
+| Single logical change spanning N modules (e.g. add field: migration + model + API + UI) | Atomic — 1 commit, OK |
+| ≥2 unrelated modules/scopes | STOP, ask user |
+| User: split | Stage per group → separate commits, each with own `type`/`scope` |
+| User: combine | Drop `(<scope>)` — never use `core`/`misc` filler |
+| User wants single commit but multi-type | Pick `type` reflecting dominant change |
+
+Heuristic: removing one module breaks feature → atomic. Standalone meaningful → split.
+
+### Step 4 — Compose message
+
+| Part | Rule |
+|------|------|
+| Format | `<type>(<scope>): <subject> (<JIRA-ID>)` |
+| Jira ID position | End of subject, in `()`, exactly one occurrence |
+| Header length | ≤ 100 chars total (target ≤ 72) |
+| `type` / `scope` | English (CC standard) |
+| `scope` | From `.commit-scopes` (see [Scope](#scope)). Drop `(<scope>)` if change spans modules |
+| `subject` | Imperative, no period, lowercase first letter |
+| `subject` exceptions | Acronyms uppercase: `JWT`, `API`, `OIDC`, `VAT`. Proper nouns: `Jira`, `Redis`, `GitLab` |
+| `body` | Optional. Wrap at 72 chars. Why > what. Single-level bullets only |
+| Breaking change | Add `!` after `type(scope)` (e.g. `feat(api)!:`) + footer `BREAKING CHANGE: <desc>` |
+
+### Step 5 — Commit (HEREDOC / here-string)
+
+**Bash (Claude Code Bash tool):**
 
 ```bash
-# Dạng có scope
+# With scope
 git commit -m "$(cat <<'EOF'
-<JIRA-ID> <type>(<scope>): <subject>
+<type>(<scope>): <subject> (<JIRA-ID>)
 
-<body tùy chọn>
+<body optional>
 EOF
 )"
 
-# Dạng không scope
+# Without scope
 git commit -m "$(cat <<'EOF'
-<JIRA-ID> <type>: <subject>
+<type>: <subject> (<JIRA-ID>)
 
-<body tùy chọn>
+<body optional>
 EOF
 )"
 ```
 
-KHÔNG tự động chèn dòng `Co-Authored-By:` vào commit — repo này không dùng convention đó.
+> No `Co-Authored-By:` auto-insert — repo doesn't track AI co-authorship. Real pair-coding → use `Co-authored-by` footer (see [Footer](#footer)).
 
-7. **Sau khi commit**, chạy `git status` để xác nhận commit đã tạo thành công.
+**PowerShell (user copy-paste on Windows terminal):**
 
-8. **Nếu pre-commit hook fail**, KHÔNG dùng `--amend` (commit trước đó đã fail nên chưa tồn tại). Sửa lỗi, stage lại, tạo commit mới.
+```powershell
+# Single-quoted here-string — no $variable expansion
+git commit -m @'
+<type>(<scope>): <subject> (<JIRA-ID>)
 
-9. **KHÔNG push** trừ khi người dùng yêu cầu rõ ràng.
+<body optional>
+'@
+```
 
-## Các `type` được phép
+> Closing `'@` must be at column 0 — indent = parse error.
 
-| Type | Ý nghĩa | Version bump |
+## Allowed types
+
+| Type | Meaning | Version bump |
 |------|---------|--------------|
-| `feat` | Tính năng mới | MINOR (1.X.0) |
-| `fix` | Sửa bug | PATCH (1.0.X) |
-| `perf` | Cải thiện hiệu năng | PATCH |
-| `refactor` | Refactor không đổi behavior | — |
-| `docs` | Tài liệu | — |
-| `test` | Thêm/sửa test | — |
-| `chore` | Maintenance, build config | — |
+| `feat` | New feature | MINOR (1.X.0) |
+| `fix` | Bug fix | PATCH (1.0.X) |
+| `perf` | Performance improvement | PATCH |
+| `refactor` | Refactor without behavior change | — |
+| `docs` | Documentation | — |
+| `test` | Add/modify tests | — |
+| `build` | Build system, dependency, packaging | — |
+| `style` | Format code (whitespace, lint) — no behavior change | — |
+| `chore` | Maintenance (housekeeping, fits no other type) | — |
 | `ci` | CI/CD config | — |
+| `revert` | Revert prior commit (see [Examples](#examples) — revert) | — |
 
-> **Breaking change** là một *modifier*, không phải type riêng. Bất kỳ type nào có hậu tố `!` (vd `feat(api)!:`) hoặc có footer `BREAKING CHANGE: <mô tả>` đều kích hoạt MAJOR bump (X.0.0).
+> **Breaking change** is a *modifier*, not a separate type. Suffix `!` (e.g. `feat(api)!:`) or footer `BREAKING CHANGE:` → MAJOR bump (X.0.0).
 
-## Ví dụ tham chiếu
+## Footer
+
+Position: after body, separated by blank line. Format: `Token: value` (CC) or `Token #issue` (GitHub-style).
+
+| Footer | When to use |
+|--------|-------------|
+| `BREAKING CHANGE: <desc>` | Required when header has `!`. Describe impact + migration. |
+| `Closes <JIRA-ID>` | Trigger Jira-GitLab auto-close on merge. Skip if already auto-closing from subject mention (check 1-2 recent merged tickets to confirm) — avoids double-trigger. |
+| `Refs <JIRA-ID>` | Reference another Jira (related but not closing). |
+| `Co-authored-by: Name <email>` | Real pair-programming. Never auto-insert AI here. |
+| `Reviewed-by: Name <email>` | Optional — only if team convention. |
+
+| Rule | When to apply |
+|------|---------------|
+| Don't repeat Jira ID | If already in subject `(<JIRA-ID>)`, omit from footer unless `Closes`/`Refs` keyword needed |
+| Token case | PascalCase or kebab-case (`Reviewed-by`, `Co-authored-by`); `BREAKING CHANGE` uppercase per spec |
+| Multi-line value | Indent continuation lines (CC parser detects via indent). Prefer single-line. |
+
+## Scope
+
+**Lookup**: read `.commit-scopes` at repo root → fallback `git log --pretty=format:%s | grep -oE '\([^)]+\):' | sort -u`.
+
+| Convention | Detail |
+|------------|--------|
+| Case | lowercase, kebab-case (separator `-`, not `_`) |
+| Token count | Prefer 1 token; compound `<primary>-<sub>` to narrow (e.g. `admin-jobs`, `team-digest`) |
+| Suffix drop | `email_service` → `email`, `ai_engine` → `ai` (Java/.NET `Service`/`Manager` same) |
+
+| New scope decision | Action |
+|--------------------|--------|
+| Synonym exists in `.commit-scopes` | Reuse — never coin duplicate (`auth` vs `authentication` vs `login`) |
+| Genuinely new concept | Add to `.commit-scopes` in same PR as first commit using it |
+| Can't update file now (hotfix, fast flow) | Drop `(<scope>)` (valid CC) or use `--quick`. Update `.commit-scopes` before merge |
+
+> 🚫 Never invent a generic scope (`core`, `misc`) to fill format. No-scope flags "needs categorization"; invented scope masks the gap.
+
+### `.commit-scopes` file
+
+Plain text — one scope per line, `#` lines are comments, blanks/whitespace trimmed.
+
+Sections in this repo's file: top-level modules → sub-feature compounds → cross-cutting. SKILL.md is portable — copy to another repo + create that repo's own `.commit-scopes`, no skill edit needed.
+
+## Examples
+
+**feat with body:**
 
 ```
-WRA-201 feat(auth): thêm JWT refresh token rotation
+feat(auth): thêm JWT refresh token rotation (WRA-201)
 
 Implement sliding expiration cho refresh token, revoke
 token cũ khi phát hiện reuse.
 ```
 
-```
-WRA-334 fix(billing): tính sai VAT cho đơn hàng có discount
-```
+**fix one-liner:**
 
 ```
-WRA-412 refactor(order): tách OrderService thành các handler nhỏ
+fix(billing): tính sai VAT cho đơn hàng có discount (WRA-334)
+```
+
+**refactor with body:**
+
+```
+refactor(order): tách OrderService thành các handler nhỏ (WRA-412)
 
 Không đổi behavior, chuẩn bị cho việc thêm payment provider.
 ```
 
+**breaking change:**
+
 ```
-WRA-450 feat(api)!: đổi response format endpoint /users
+feat(api)!: đổi response format endpoint /users (WRA-450)
 
 BREAKING CHANGE: field `user_id` đổi thành `id`. Clients
 phải cập nhật trước khi deploy.
 ```
 
-## Lưu ý quan trọng
+**revert:**
 
-- Nhiều thay đổi thuộc các `type` khác nhau → chia thành nhiều commit khi hợp lý, mỗi commit một `type`. Nếu người dùng muốn một commit duy nhất, chọn `type` phản ánh thay đổi chủ đạo.
-- Trước khi commit, hỏi lại người dùng nếu có nghi ngờ về việc gộp/tách commit.
-- Tuân thủ Git Safety Protocol của Claude Code (không `--no-verify`, không force push, không sửa git config).
+```
+revert: feat(auth): thêm JWT refresh token rotation (WRA-501)
+
+This reverts commit 7cd2ed6693da5f5d70751084d20c915c54b9f37d.
+
+Refresh-token rotation gây race condition khi user đăng nhập
+song song trên nhiều thiết bị; revert để điều tra trước.
+
+Refs WRA-201
+```
+
+| Revert element | Rule |
+|----------------|------|
+| Subject | Take original header, **replace** `(JIRA-original)` with `(JIRA-revert-task)` |
+| Invariant preserved | Subject still ends with exactly one `(<JIRA-ID>)` |
+| Original commit identity | SHA in `This reverts commit <full-SHA>.` line (auto-generated by `git revert`) |
+| Original ticket trace | `Refs <JIRA-original>` footer (optional) |
+| Why-explanation | In body, before footer |
+
+## Quick mode
+
+**Trigger**: `--quick` in args (e.g. `/commit WRA-9 --quick`).
+
+| Aspect | Rule |
+|--------|------|
+| Format | `<type>: <subject> (<JIRA-ID>)` — no scope, ever |
+| Body | Skipped, even when meaningful |
+| Header length | ≤ 72 chars (tighter than normal mode) |
+| Mandatory | `type`, Jira ID, imperative subject, no period |
+
+**Use for**: hotfix · dep bump · typo fix · internal tool · small chore
+**Don't use for**: `feat`/`refactor` needing why-body · breaking change · multi-module change (drop `--quick`, use no-scope normal commit)
+
+### Examples
+
+```
+fix: timeout retry khi gọi Jira chậm (WRA-501)
+```
+
+```
+build: bump litellm 1.50 → 1.52 (WRA-502)
+```
+
+```
+docs: thêm troubleshooting cho IMAP TLS (WRA-503)
+```
+
+> Dep bump → `build` (build system / packaging) per CC spec, not `chore`. `chore` only for housekeeping fitting no other type.
+
+## WIP / Spike
+
+| Element | Rule |
+|---------|------|
+| Type | `chore` (always) |
+| Keyword | `wip` or `spike` — lowercase, first word of subject |
+| Scope | None |
+| Format | `chore: <wip\|spike> <desc> (<JIRA-ID>)` |
+
+```
+chore: wip refactor luồng auth (WRA-123)
+```
+
+```
+chore: spike test kết nối Redis (WRA-999)
+```
+
+| Lifecycle | Rule |
+|-----------|------|
+| WIP → main | **Must** squash/rebase before merge. Main never holds raw `wip` chain |
+| Spike → main | Keep if documents a decision; delete if throwaway — decided in PR review |
+| Hotfix | NO — that's a real `fix:` |
+
+> Pairs naturally with `--quick`: `/commit WRA-123 --quick` (no scope, no body, lightweight).
