@@ -206,7 +206,7 @@ Skill này không phải `/slash command` mà kích hoạt bằng **trigger phra
 | `review the last change` | Chạy `git diff`, list issues `#1`, `#2`... |
 | `commit and push` | Commit `<type>(<scope>): <subject> (<TASK-ID>)` rồi push |
 | `create a merge request` | `glab mr create` với title/description chuẩn |
-| `review the MR !<N>` | `glab mr diff <N>`, list issues, verdict APPROVE/REQUEST_CHANGES |
+| `review the MR !<N>` | Lấy `glab mr diff <N>` + comment đã có. **MR chưa có comment** → review mới, list issues + verdict. **MR đã có comment** → review tiếp nối: đối chiếu issue cũ (`✓ Resolved` / `❌ Still open` / `⚠️ Partially`) + chỉ review commit mới push thêm |
 | `post review result to the MR` | `glab mr note` đăng comment Markdown |
 | `fix all issues` / `fix issue #<N>` | Fix → commit `fix(<scope>): address review issues #N (<TASK-ID>)` → push |
 | `merge the request` | Check approve + CI pass → `glab mr merge --squash --remove-source-branch` |

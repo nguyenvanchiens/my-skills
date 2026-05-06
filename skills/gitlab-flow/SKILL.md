@@ -79,29 +79,49 @@ Quy trình chuẩn cho một feature/bugfix mới. Có 2 vai trò: **Developer**
 5. Trả về URL của MR và số `!N`
 
 ### "review the MR !<N>" (vai trò Reviewer)
+
 1. Yêu cầu `glab` CLI đã cài: kiểm tra `glab --version`
-2. Lấy thông tin MR: `glab mr view <N>`
+2. Lấy thông tin MR + comment đã có:
+   - `glab mr view <N> --comments` (hiển thị cả note/discussion đã có)
 3. **BẮT BUỘC** lấy diff từ remote bằng `glab mr diff <N>`. **KHÔNG** thay thế bằng `git diff <base>...<source>` so với branch local — `main` (hoặc base) ở local có thể stale, dẫn tới review nhầm hàng trăm commits đã có sẵn trên remote. Nếu thực sự cần dùng `git diff` (vd để lấy stat), phải `git fetch origin <base-branch>` trước rồi so với `origin/<base-branch>`, không phải branch local.
-4. Review theo cùng tiêu chí ở mục "review the last change"
-5. Liệt kê issues theo dạng `#1`, `#2`, ...; mỗi issue cần có:
-   - File + dòng
-   - Vấn đề
-   - Đề xuất fix
-6. Đánh giá tổng thể: APPROVE / REQUEST_CHANGES / COMMENT
+4. **Phân nhánh theo trạng thái comment**:
+
+   **(A) MR CHƯA có comment review nào** → review mới hoàn toàn:
+   - Review toàn bộ diff theo tiêu chí ở mục "review the last change"
+   - Liệt kê issues `#1`, `#2`, ... mỗi issue có: file + dòng, vấn đề, đề xuất fix
+   - Đánh giá tổng thể: APPROVE / REQUEST_CHANGES / COMMENT
+
+   **(B) MR ĐÃ có comment review trước đó** → review tiếp nối, KHÔNG review lại từ đầu:
+   - Đọc kỹ comment cũ, trích xuất danh sách issue đã raise (`#1`, `#2`, ...) kèm verdict gần nhất
+   - Xác định mốc thời gian / commit của lần review trước (lấy `created_at` của note review cuối, hoặc commit SHA mà reviewer reference)
+   - Lấy commit mới push từ sau mốc đó: `glab mr view <N>` → xem `commits` hoặc `git log <last-reviewed-sha>..origin/<source-branch>`
+   - **Đối chiếu issue cũ**: với mỗi issue `#N` đã raise, kiểm tra trong commit/diff mới xem đã được fix chưa. Đánh dấu:
+     - `✓ Resolved #N` — đã fix đúng
+     - `❌ Still open #N` — chưa fix, hoặc fix sai/chưa đủ — kèm lý do
+     - `⚠️ Partially #N` — fix một phần, kèm điều còn thiếu
+   - **Issue mới phát sinh từ commit mới**: đánh số tiếp theo (`#N+1`, `#N+2`, ...), không tái sử dụng số cũ
+   - **KHÔNG** review lại các phần code không thay đổi từ lần review trước (trừ khi liên quan trực tiếp tới issue cũ)
+   - Đánh giá tổng thể dựa trên trạng thái mới: APPROVE nếu mọi issue cũ đã `✓ Resolved` và không có issue mới nghiêm trọng; REQUEST_CHANGES nếu còn `❌ Still open` hoặc có issue mới blocking; COMMENT cho các trường hợp còn lại
+5. Output format thống nhất:
+   ```
+   ## Review !<N> (lần thứ <K>)
+
+   **Verdict:** APPROVE | REQUEST_CHANGES | COMMENT
+
+   ### Trạng thái issue cũ        ← chỉ có ở mode (B)
+   - ✓ Resolved #1
+   - ❌ Still open #2 — <lý do>
+   - ⚠️ Partially #3 — <còn thiếu>
+
+   ### Issue mới
+   - #N+1 `path/to/file.js:42` — <vấn đề>. Đề xuất: <fix>
+   ```
 
 ### "post review result to the MR"
-1. Format kết quả review thành Markdown:
-   ```markdown
-   ## Review !<N>
-
-   **Verdict:** REQUEST_CHANGES | APPROVE
-
-   ### Issues
-   - #1 `path/to/file.js:42` — <vấn đề>. Đề xuất: <fix>
-   - #2 ...
-   ```
+1. Lấy chính output Markdown từ bước "review the MR" trước đó (đã đúng format, không cần soạn lại). Nếu là review tiếp nối (mode B), giữ nguyên cả phần "Trạng thái issue cũ" — đó là context quan trọng cho dev.
 2. Đăng comment: `glab mr note <N> --message "<markdown>"`
 3. Nếu APPROVE: `glab mr approve <N>`
+4. Nếu REQUEST_CHANGES với toàn bộ issue cũ đã `✓ Resolved` (chỉ còn issue mới): nói rõ trong comment để dev biết phần fix trước đã OK
 
 ### "fix all issues" / "fix issue #<N>" / "fix issues #1, #2"
 1. Đọc lại các issue đã raise (từ comment trên MR hoặc từ output review trước đó)
