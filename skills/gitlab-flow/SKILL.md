@@ -52,14 +52,21 @@ Quy trình chuẩn cho một feature/bugfix mới. Có 2 vai trò: **Developer**
 3. Báo cáo dưới dạng danh sách có đánh số: `#1`, `#2`, ... để user dễ tham chiếu khi fix
 
 ### "Commit and push"
+
+> **Quan trọng**: tên trigger là "Commit and push" nhưng skill **CHỈ commit local**, KHÔNG tự push. Push là hành động ảnh hưởng remote → bắt buộc hỏi user xác nhận trước.
+
 1. `git status` để xem files thay đổi
 2. `git diff` xem nội dung
 3. Soạn commit message theo convention (lấy TASK-ID từ tên nhánh hiện tại)
 4. KHÔNG dùng `git add -A` mà liệt kê các file cụ thể
 5. KHÔNG commit file nhạy cảm: `.env`, `credentials.*`, `*.key`, `*.pem`, file binary lớn
 6. Tạo commit với HEREDOC để giữ định dạng message
-7. `git push -u origin <branch>` (lần đầu) hoặc `git push` (lần sau)
-8. Báo lại commit hash + URL push thành công
+7. Báo commit hash + tóm tắt nội dung commit
+8. **DỪNG và HỎI user**: "Đã commit `<hash>` ở local. Bạn có muốn push lên remote không?" — đợi xác nhận rõ ràng ("ok push" / "yes" / "push đi") rồi mới chạy `git push`
+9. **KHÔNG tự push** kể cả khi trigger có chữ "push" trong tên. Chỉ push sau khi user xác nhận.
+10. Sau khi user xác nhận push:
+    - `git push -u origin <branch>` (lần đầu) hoặc `git push` (lần sau)
+    - Báo URL push thành công + gợi ý bước tiếp theo (vd `create a merge request`)
 
 ### "create a merge request" / "create an MR"
 1. Đảm bảo đã push lên remote
