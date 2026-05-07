@@ -208,7 +208,7 @@ Skill này không phải `/slash command` mà kích hoạt bằng **trigger phra
 | `create a merge request` | `glab mr create` với title/description chuẩn |
 | `review the MR !<N>` | Lấy `glab mr diff <N>` + comment đã có. **MR chưa có comment** → review mới, list issues + verdict. **MR đã có comment** → review tiếp nối: đối chiếu issue cũ (`✓ Resolved` / `❌ Still open` / `⚠️ Partially`) + chỉ review commit mới push thêm |
 | `post review result to the MR` | `glab mr note` đăng comment Markdown |
-| `fix all issues` / `fix issue #<N>` | Fix → commit `fix(<scope>): address review issues #N (<TASK-ID>)` → push |
+| `fix all issues` / `fix issue #<N>` | Fix các issue → tóm tắt + đề xuất commit message `fix(<scope>): address review issues #N (<TASK-ID>)` → **HỎI user xác nhận** trước khi commit/push (không tự động) |
 | `merge the request` | Check approve + CI pass → `glab mr merge --squash --remove-source-branch` |
 
 ### Flow điển hình end-to-end
@@ -228,8 +228,9 @@ Skill này không phải `/slash command` mà kích hoạt bằng **trigger phra
 
    --- quay lại vai Developer ---
 
-9. fix all issues                  → tự commit + push
-10. merge the request
+9. fix all issues                  → fix xong, đợi user xác nhận
+10. (xác nhận) commit and push
+11. merge the request
 ```
 
 > **Lưu ý**: bước 6 và 8 là **2 prompt riêng**, không tự động nối. Mục đích để reviewer xem trước nội dung review, có thể yêu cầu Claude bổ sung/sửa, mới quyết định post lên MR.

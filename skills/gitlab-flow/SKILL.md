@@ -128,9 +128,12 @@ Quy trình chuẩn cho một feature/bugfix mới. Có 2 vai trò: **Developer**
 2. Nếu user chỉ định số issue → chỉ fix các issue đó
 3. Nếu "fix all" → fix tất cả
 4. Sau mỗi fix, verify ngắn (chạy test/build nếu có)
-5. Khi hoàn tất, tự động chạy luôn flow "Commit and push" với commit message dạng:
-   `fix(<scope>): address review issues #1,#2 (<TASK-ID>)`
-6. Báo lại hash commit và xác nhận đã push
+5. Khi hoàn tất TẤT CẢ fix, **DỪNG và HỎI user** trước khi commit/push:
+   - Tóm tắt các issue đã fix + file đã thay đổi
+   - Đề xuất commit message dạng: `fix(<scope>): address review issues #1,#2 (<TASK-ID>)`
+   - Đợi user xác nhận: "ok commit" / "đổi message thành ..." / "chưa, tôi muốn xem lại trước"
+6. **KHÔNG tự động commit/push.** Chỉ thực hiện sau khi user xác nhận rõ ràng. User có thể yêu cầu chỉ commit (chưa push) hoặc commit + push.
+7. Sau khi commit/push (theo yêu cầu user), báo lại hash commit và URL push
 
 ### "merge the request"
 1. Kiểm tra MR đã có:
