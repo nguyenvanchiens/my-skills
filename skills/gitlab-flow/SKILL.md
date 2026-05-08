@@ -1,6 +1,6 @@
 ---
 name: gitlab-flow
-description: Standard end-to-end workflow for shipping a feature/bugfix from a Jira task to a merged GitLab MR. Use when the user references a Jira task ID (WRA-XX, etc.), asks to "start a task", "create branch from task", "create a merge request", "review the MR !N", "post review result to the MR", "fix all issues", or "merge the request". Covers branch naming, commit format, MR creation, review, fix loop, and merge.
+description: Standard end-to-end workflow for shipping a feature/bugfix from a Jira task to a merged GitLab MR. Use when the user references a Jira task ID (WRA-XX, etc.), asks to "start a task", "create branch from task", "review the last change", "review the whole branch", "commit and push", "create a merge request", "review the MR !N", "post review result to the MR", "fix all issues", or "merge the request". Covers branch naming, commit format, MR creation, micro + macro code review (3-agent parallel), fix loop, and merge.
 ---
 
 # GitLab Flow (Jira → Code → MR → Merge)
@@ -17,10 +17,12 @@ Quy trình chuẩn cho một feature/bugfix mới. Có 2 vai trò: **Developer**
 
 ### Commit message
 - Format: `<type>(<scope>): <subject> (<TASK-ID>)`
-- type: `feat | fix | refactor | chore | docs | test | style`
+- type: `feat | fix | perf | refactor | docs | test | build | style | chore | ci | revert`
 - Ví dụ: `feat(auth): restrict login to allowed domains (WRA-40)`
 - Body (tuỳ chọn): giải thích **why**, không lặp lại what
-- Trailer: `Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>`
+- TASK-ID tự lấy từ tên nhánh hiện tại (`feature/WRA-40-...` → `WRA-40`)
+- KHÔNG auto-chèn `Co-Authored-By:` — repo không track AI authorship
+- Spec chi tiết (probe, partial-staging guard, atomic check, `.commit-scopes`, footer, `--quick`, WIP/Spike, revert): xem mục **"Commit and push"** bên dưới
 
 ### Target branch
 - MR luôn merge vào `main` trừ khi user chỉ định khác
@@ -53,20 +55,301 @@ Quy trình chuẩn cho một feature/bugfix mới. Có 2 vai trò: **Developer**
 
 ### "Commit and push"
 
-> **Quan trọng**: tên trigger là "Commit and push" nhưng skill **CHỈ commit local**, KHÔNG tự push. Push là hành động ảnh hưởng remote → bắt buộc hỏi user xác nhận trước.
+Spec đầy đủ Conventional Commits + Jira ID + push gate. Self-contained: không cần cài skill `commit` riêng.
 
-1. `git status` để xem files thay đổi
-2. `git diff` xem nội dung
-3. Soạn commit message theo convention (lấy TASK-ID từ tên nhánh hiện tại)
-4. KHÔNG dùng `git add -A` mà liệt kê các file cụ thể
-5. KHÔNG commit file nhạy cảm: `.env`, `credentials.*`, `*.key`, `*.pem`, file binary lớn
-6. Tạo commit với HEREDOC để giữ định dạng message
-7. Báo commit hash + tóm tắt nội dung commit
-8. **DỪNG và HỎI user**: "Đã commit `<hash>` ở local. Bạn có muốn push lên remote không?" — đợi xác nhận rõ ràng ("ok push" / "yes" / "push đi") rồi mới chạy `git push`
-9. **KHÔNG tự push** kể cả khi trigger có chữ "push" trong tên. Chỉ push sau khi user xác nhận.
-10. Sau khi user xác nhận push:
-    - `git push -u origin <branch>` (lần đầu) hoặc `git push` (lần sau)
-    - Báo URL push thành công + gợi ý bước tiếp theo (vd `create a merge request`)
+> **Quan trọng**: tên trigger có "push" nhưng skill **CHỈ commit local**, KHÔNG tự push. Push là hành động remote → bắt buộc hỏi user xác nhận.
+
+**Trigger phụ**: thêm `--quick` ("commit and push --quick", "quick commit") → kích Quick mode (xem cuối section).
+
+#### Inputs
+
+| Input | Rule |
+|---|---|
+| TASK-ID | Auto-extract từ tên nhánh hiện tại (`feature/WRA-9-...` → `WRA-9`). Pattern `[A-Z][A-Z0-9]+-\d+`. Không match → STOP, hỏi user |
+| Repo language | Tiếng Việt (theo `git log`) — áp dụng cho `subject` và `body` |
+| Detect "quick" intent | User nói "nhanh" / "quick" / "tạm" / "small" / "fast" → suggest `--quick` trước khi commit |
+
+#### Behavior
+
+| Rule | Detail |
+|---|---|
+| Probe trước khi quyết định | Luôn chạy Step 1 đầy đủ — không skip kể cả commit nhỏ |
+| Không bao giờ guess `type`/`scope` | Không chắc → STOP, hỏi user. Không coin-flip |
+| Quality > speed | 1 câu hỏi xác nhận đỡ 1 commit sai format |
+
+#### Process
+
+**Step 1 — Probe repo state** (parallel calls trong 1 message):
+
+| Call | Mục đích |
+|---|---|
+| `git status` (không `-uall`) | Untracked + modified files |
+| `git diff --cached` | Staged hunks only |
+| `git diff` | Unstaged hunks only — tách biệt để detect partial-staging |
+| `cat "$(git rev-parse --show-toplevel)/.commit-scopes"` | Scope allowlist (works từ subdir) |
+
+**Step 2 — Partial-staging guard**:
+
+| Khi | Hành động |
+|---|---|
+| File xuất hiện cả ở index lẫn worktree (`MM` trong `git status`) | STOP, hỏi user |
+| User: commit staged-only | Tiến hành với index hiện tại |
+| User: stage rest then combine | `git add <files>` rồi commit |
+| Default | KHÔNG tự `git add` unstaged hunks (user có thể đã `git add -p` cố ý) |
+
+**Step 3 — Atomic check**:
+
+| Khi | Hành động |
+|---|---|
+| Single logical change span N modules (vd add field: migration + model + API + UI) | Atomic — 1 commit OK |
+| ≥2 modules/scopes unrelated | STOP, hỏi user |
+| User: split | Stage per group → commit riêng từng nhóm, mỗi commit có `type`/`scope` riêng |
+| User: combine | Drop `(<scope>)` — không invent `core`/`misc` lấp |
+| User muốn 1 commit nhưng multi-type | Pick `type` phản ánh thay đổi chủ đạo |
+
+Heuristic: bỏ 1 module thì feature gãy → atomic. Standalone meaningful → split.
+
+**Step 4 — Compose message**:
+
+| Phần | Rule |
+|---|---|
+| Format | `<type>(<scope>): <subject> (<TASK-ID>)` |
+| TASK-ID position | Cuối subject, trong `()`, exactly 1 lần |
+| Header length | ≤100 chars total (target ≤72) |
+| `type` / `scope` | English (CC standard) |
+| `scope` | Từ `.commit-scopes` (xem mục Scope). Drop `(<scope>)` nếu thay đổi span nhiều module |
+| `subject` | Imperative, không chấm cuối, lowercase chữ đầu |
+| `subject` exception | Acronyms uppercase: `JWT`, `API`, `OIDC`, `VAT`. Proper nouns: `Jira`, `Redis`, `GitLab` |
+| `body` | Optional. Wrap 72 chars. Why > what. Single-level bullets only |
+| Breaking change | Add `!` sau `type(scope)` (vd `feat(api)!:`) + footer `BREAKING CHANGE: <desc>` |
+
+**Step 5 — Commit (HEREDOC)**:
+
+```bash
+# Có scope
+git commit -m "$(cat <<'EOF'
+<type>(<scope>): <subject> (<TASK-ID>)
+
+<body optional>
+EOF
+)"
+
+# Không scope
+git commit -m "$(cat <<'EOF'
+<type>: <subject> (<TASK-ID>)
+
+<body optional>
+EOF
+)"
+```
+
+**Step 6 — Push gate** (sau khi commit local thành công):
+
+1. Báo commit hash + tóm tắt nội dung
+2. **DỪNG, HỎI user**: "Đã commit `<hash>` ở local. Bạn có muốn push lên remote không?"
+3. Đợi xác nhận rõ ràng ("ok push" / "yes" / "push đi") rồi mới:
+   - `git push -u origin <branch>` (lần đầu) hoặc `git push` (lần sau)
+   - Báo URL push thành công + gợi ý bước tiếp (vd `review the whole branch` hoặc `create a merge request`)
+4. **KHÔNG tự push** kể cả khi trigger có "push" trong tên
+
+#### Allowed types
+
+| Type | Ý nghĩa | Version bump |
+|---|---|---|
+| `feat` | Tính năng mới | MINOR (1.X.0) |
+| `fix` | Sửa bug | PATCH (1.0.X) |
+| `perf` | Cải thiện performance | PATCH |
+| `refactor` | Refactor không đổi behavior | — |
+| `docs` | Tài liệu | — |
+| `test` | Thêm/sửa test | — |
+| `build` | Build system / dependency / packaging | — |
+| `style` | Format code (whitespace, lint) | — |
+| `chore` | Maintenance, không fit type khác | — |
+| `ci` | CI/CD config | — |
+| `revert` | Revert commit cũ | — |
+
+> Breaking change là *modifier*, không phải type riêng. Suffix `!` hoặc footer `BREAKING CHANGE:` → MAJOR bump (X.0.0).
+
+#### Footer
+
+Vị trí: sau body, ngăn bằng dòng trắng. Format: `Token: value` (CC) hoặc `Token #issue` (GitHub-style).
+
+| Footer | Khi dùng |
+|---|---|
+| `BREAKING CHANGE: <desc>` | Bắt buộc khi header có `!`. Mô tả impact + migration |
+| `Closes <TASK-ID>` | Trigger Jira-GitLab auto-close khi merge. Skip nếu đã auto-close từ subject mention (kiểm tra 1-2 ticket merged gần đây để confirm) — tránh trigger 2 lần |
+| `Refs <TASK-ID>` | Reference Jira khác (related nhưng không close) |
+| `Co-authored-by: Name <email>` | Real pair-programming. KHÔNG auto-insert AI |
+| `Reviewed-by: Name <email>` | Optional — chỉ nếu team convention |
+
+| Rule | Áp dụng |
+|---|---|
+| Đừng lặp Task ID | Đã có trong subject `(<TASK-ID>)` rồi → bỏ ở footer trừ khi cần keyword `Closes`/`Refs` |
+| Token case | PascalCase hoặc kebab-case (`Reviewed-by`, `Co-authored-by`); `BREAKING CHANGE` uppercase per spec |
+
+#### Scope
+
+**Lookup**: đọc `.commit-scopes` ở repo root → fallback `git log --pretty=format:%s | grep -oE '\([^)]+\):' | sort -u`.
+
+| Convention | Detail |
+|---|---|
+| Case | lowercase, kebab-case (`-`, không `_`) |
+| Token count | Prefer 1 token; compound `<primary>-<sub>` để narrow (vd `admin-jobs`, `team-digest`) |
+| Suffix drop | `email_service` → `email`, `ai_engine` → `ai`, Java/.NET `Service`/`Manager` tương tự |
+
+| Quyết định new scope | Hành động |
+|---|---|
+| Synonym đã có trong `.commit-scopes` | Reuse — đừng coin trùng (`auth` vs `authentication` vs `login`) |
+| Genuinely new concept | Add vào `.commit-scopes` cùng PR với commit đầu tiên dùng nó |
+| Không update file được lúc đó (hotfix, fast flow) | Drop `(<scope>)` (valid CC) hoặc dùng `--quick`. Update `.commit-scopes` trước khi merge |
+
+> 🚫 Đừng invent generic scope (`core`, `misc`) để fill format. No-scope flags "needs categorization"; invented scope masks the gap.
+
+**`.commit-scopes` file**: plain text — 1 scope/dòng, dòng `#` là comment, blank/whitespace trimmed.
+
+#### Quick mode
+
+**Trigger**: thêm `--quick` ("commit and push --quick" / "quick commit").
+
+| Aspect | Rule |
+|---|---|
+| Format | `<type>: <subject> (<TASK-ID>)` — không scope, ever |
+| Body | Skip, kể cả meaningful |
+| Header length | ≤72 chars (chặt hơn normal) |
+| Mandatory | `type`, TASK-ID, imperative subject, không chấm cuối |
+
+**Use for**: hotfix · dep bump · typo fix · internal tool · small chore
+**Don't use for**: `feat`/`refactor` cần why-body · breaking change · multi-module change (drop `--quick`, dùng no-scope normal)
+
+> Dep bump → `build` (build system / packaging) per CC spec, không `chore`. `chore` chỉ cho housekeeping không fit type khác.
+
+#### WIP / Spike
+
+| Element | Rule |
+|---|---|
+| Type | `chore` (always) |
+| Keyword | `wip` hoặc `spike` — lowercase, từ đầu của subject |
+| Scope | None |
+| Format | `chore: <wip\|spike> <desc> (<TASK-ID>)` |
+
+```
+chore: wip refactor luồng auth (WRA-123)
+chore: spike test kết nối Redis (WRA-999)
+```
+
+| Lifecycle | Rule |
+|---|---|
+| WIP → main | **Bắt buộc** squash/rebase trước merge. Main không bao giờ giữ chuỗi `wip` raw |
+| Spike → main | Giữ nếu document được decision; xóa nếu throwaway — quyết trong PR review |
+| Hotfix | KHÔNG — đó là `fix:` thật |
+
+> Pair tự nhiên với `--quick`: "commit and push --quick" (no scope, no body, lightweight).
+
+#### Examples
+
+**feat with body**:
+```
+feat(auth): thêm JWT refresh token rotation (WRA-201)
+
+Implement sliding expiration cho refresh token, revoke
+token cũ khi phát hiện reuse.
+```
+
+**fix one-liner**:
+```
+fix(billing): tính sai VAT cho đơn hàng có discount (WRA-334)
+```
+
+**refactor with body**:
+```
+refactor(order): tách OrderService thành các handler nhỏ (WRA-412)
+
+Không đổi behavior, chuẩn bị cho việc thêm payment provider.
+```
+
+**breaking change**:
+```
+feat(api)!: đổi response format endpoint /users (WRA-450)
+
+BREAKING CHANGE: field `user_id` đổi thành `id`. Clients
+phải cập nhật trước khi deploy.
+```
+
+**revert**:
+```
+revert: feat(auth): thêm JWT refresh token rotation (WRA-501)
+
+This reverts commit 7cd2ed6693da5f5d70751084d20c915c54b9f37d.
+
+Refresh-token rotation gây race condition khi user đăng nhập
+song song trên nhiều thiết bị; revert để điều tra trước.
+
+Refs WRA-201
+```
+
+| Revert element | Rule |
+|---|---|
+| Subject | Lấy original header, **replace** `(JIRA-original)` bằng `(JIRA-revert-task)` |
+| Invariant preserved | Subject vẫn kết thúc với exactly 1 `(<TASK-ID>)` |
+| Original commit identity | SHA trong dòng `This reverts commit <full-SHA>.` (auto-generated bởi `git revert`) |
+| Original ticket trace | `Refs <JIRA-original>` footer (optional) |
+| Why-explanation | Trong body, trước footer |
+
+#### Safety rules
+
+- KHÔNG dùng `git add -A` / `git add .` — liệt kê file cụ thể
+- KHÔNG commit secrets: `.env`, `credentials.*`, `*.key`, `*.pem`, file binary lớn
+- Pre-commit hook fail → fix nguyên nhân + tạo commit MỚI (KHÔNG `--amend`)
+- KHÔNG bypass `--no-verify` trừ khi user yêu cầu rõ
+- KHÔNG tự push, kể cả khi trigger có "push" trong tên — luôn hỏi user (xem Step 6)
+
+### "review the whole branch" (review cumulative trước khi mở MR)
+
+Review TOÀN BỘ thay đổi của branch hiện tại so với `main` — committed + uncommitted — qua 3 agent song song, rồi tự fix issues. Khác `review the last change` ở điểm: nhìn cumulative diff (nhiều commit), 3 góc nhìn chuyên sâu, auto-fix các issue rõ ràng.
+
+**Khi nào dùng**: sau khi đã có nhiều commit và push chính, **trước khi `create a merge request`**. Output có thể tạo thêm changes → cần thêm 1 lượt `commit and push` nữa rồi mới mở MR. Bỏ qua bước này nếu branch chỉ 1 commit nhỏ — `review the last change` là đủ.
+
+**Phase 1 — Identify changes**:
+
+1. Resolve merge base: `git merge-base main HEAD`
+2. Nếu branch hiện tại IS `main` (hoặc base = HEAD) → báo "không có gì để review" và STOP
+3. Capture cumulative diff (commit + working tree) vào temp file để các agent đọc mà không flood context:
+   ```bash
+   BASE=$(git merge-base main HEAD)
+   git diff --no-color "$BASE" > /tmp/review_branch.diff
+   wc -l /tmp/review_branch.diff
+   ```
+4. Capture danh sách file untracked (diff không bao gồm):
+   ```bash
+   git ls-files --others --exclude-standard > /tmp/review_branch_new.txt
+   ```
+5. Stat tóm tắt để spot-check:
+   ```bash
+   git diff --stat "$BASE"
+   ```
+
+**Phase 2 — Launch 3 agent SONG SONG** (1 message, 3 Agent tool calls):
+
+Mỗi agent nhận: đường dẫn diff + đường dẫn new-files + context "cumulative diff branch <name> against main".
+
+| Agent | Tập trung | Flag điển hình |
+|---|---|---|
+| **Code Reuse** | Tìm utility/helper đã có để thay function mới viết | New function duplicates existing helper, inline logic could use existing util (string manipulation, path handling, env checks, type guards) |
+| **Code Quality** | Hacky patterns | Redundant state, parameter sprawl, copy-paste với biến thể nhỏ, leaky abstraction, stringly-typed (raw strings nơi đã có enum/constant), unnecessary JSX nesting, nested conditionals 3+ levels, unnecessary comments giải thích WHAT |
+| **Efficiency** | Performance / resource | N+1, missed concurrency (independent ops chạy tuần tự), hot-path bloat, no-op updates trong polling loops, unnecessary existence checks (TOCTOU), unbounded memory, listener leak, overly broad reads |
+
+**Phase 3 — Aggregate + fix**:
+
+1. Đợi cả 3 agent xong, gộp findings lại
+2. Fix trực tiếp từng issue trong working tree. False positive thì skip, không cãi.
+3. **KHÔNG tự commit/push** — để user review changes rồi tự `commit and push` (sẽ hỏi xác nhận push như thường lệ)
+4. Tóm tắt: số issue đã fix, file đã đụng, status test/typecheck (nếu chạy)
+5. Gợi ý bước tiếp: nếu có fix → `commit and push` rồi `create a merge request`; nếu không có gì cần sửa → `create a merge request` luôn
+
+**Lưu ý**:
+- Diff > 2000 dòng → review có thể coarse-grained. Khuyến cáo user lần sau chạy sớm hơn (sau mỗi vài commit) thay vì để dồn cuối.
+- Repo dùng `master`/`develop` thay `main` → hỏi user 1 lần rồi dùng tên đó (skill mặc định `main`).
+- Trigger này chuyên review macro. Để review chỉ thay đổi gần nhất → dùng `review the last change`. Để review MR đã push (vai Reviewer) → dùng `review the MR !<N>`.
 
 ### "create a merge request" / "create an MR"
 1. Đảm bảo đã push lên remote
