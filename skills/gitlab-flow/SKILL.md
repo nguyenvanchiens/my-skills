@@ -87,7 +87,8 @@ Quy trình chuẩn cho một feature/bugfix mới. Có 2 vai trò: **Developer**
 **Step 3 — Đề xuất** (Mode C, D):
 
 - Đưa 1-2 candidate kèm length character count
-- Hỏi user pick option nào, hoặc override description
+- **DỪNG, hỏi user pick option nào** (hoặc override description bằng tên user tự gõ)
+- **KHÔNG được tự tạo branch** trước khi user xác nhận. Tránh tình huống user phải rename sau
 
 **Step 4 — Tạo branch** (mọi mode):
 
@@ -95,7 +96,7 @@ Quy trình chuẩn cho một feature/bugfix mới. Có 2 vai trò: **Developer**
 2. Checkout `main`, pull về bản mới nhất: `git fetch origin main && git checkout main && git pull`
 3. Tạo branch:
    - Mode A/B: `git checkout -b <input-nguyên-si>` (Mode B: thêm prefix `feature/` mặc định)
-   - Mode C/D: `git checkout -b <branch-user-pick>`
+   - Mode C/D: `git checkout -b <branch-user-pick>` (chỉ sau khi user đã chọn ở Step 3)
 4. Báo lại tên branch + length character count
 
 **Edge case**:
@@ -106,6 +107,46 @@ Quy trình chuẩn cho một feature/bugfix mới. Có 2 vai trò: **Developer**
 | Mode C sau khi trim vẫn >50 chars | Đề xuất viết tắt (`qty` thay `so-luong`, `co` thay `checkout`) hoặc bỏ phạm vi |
 | TASK-ID không match pattern `[A-Z][A-Z0-9]+-\d+` | STOP, hỏi user |
 | Cần branch type khác `feature/` | User phải **gõ rõ prefix** trong input, vd `create branch from task bugfix/HNCW-311-Duplicate-survey-log` (Mode A — skill dùng nguyên si). Skill **KHÔNG** tự suy đoán `bugfix/`/`hotfix/` từ nội dung task |
+| User muốn đổi tên branch sau khi skill đã tạo | Dùng trigger riêng `rename branch <new-name>` (xem mục bên dưới). Không tự rename bằng `git branch -m` mà không update upstream → sẽ phá `commit and push` |
+
+### "rename branch <new-name>" hoặc "rename branch sang <new-name>"
+
+User không thích tên branch skill vừa tạo và muốn đổi. Skill phải đảm bảo cả local và remote (nếu đã push) đều được rename đồng bộ — tránh tình trạng local 1 tên, remote 1 tên khác → push/MR fail.
+
+**Step 1 — Detect trạng thái**:
+
+```bash
+git branch --show-current                              # tên local hiện tại
+git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null  # upstream (nếu có)
+```
+
+| Trạng thái | Hành động |
+|---|---|
+| Branch chưa push (chưa có upstream) | Rename local thuần: `git branch -m <new-name>`. Xong, không cần đụng remote |
+| Branch đã push (có upstream) | Cần rename cả 2 phía (Step 2-3) |
+
+**Step 2 — Rename local + push tên mới**:
+
+```bash
+git branch -m <new-name>
+git push -u origin <new-name>
+```
+
+**Step 3 — Xóa branch cũ trên remote**:
+
+Hỏi user: "Branch cũ `<old-name>` còn tồn tại trên remote. Xóa không?"
+- Yes → `git push origin --delete <old-name>`
+- No → giữ lại (nhưng warn: 2 remote branch trỏ cùng commit, có thể confuse reviewer)
+
+**Step 4 — Verify**:
+```bash
+git branch -vv                  # xem local + upstream mới
+git ls-remote --heads origin    # check remote không còn old-name (nếu đã xóa)
+```
+
+**Lưu ý**:
+- KHÔNG dùng `git branch -m` thuần khi branch đã push — sẽ break upstream tracking
+- Nếu đã có MR mở trên branch cũ: rename remote sẽ làm MR đứng (URL không đổi nhưng source branch không tồn tại). Phải đóng MR cũ + tạo MR mới với branch mới, hoặc dùng `glab mr update <N> --source-branch <new-name>` nếu glab support
 
 ### Sinh code từ mô tả task
 - Khi user paste mô tả task Jira làm prompt, đọc kỹ và xác nhận lại scope trước khi code nếu có chỗ mơ hồ
@@ -218,10 +259,22 @@ EOF
 
 1. Báo commit hash + tóm tắt nội dung
 2. **DỪNG, HỎI user**: "Đã commit `<hash>` ở local. Bạn có muốn push lên remote không?"
-3. Đợi xác nhận rõ ràng ("ok push" / "yes" / "push đi") rồi mới:
-   - `git push -u origin <branch>` (lần đầu) hoặc `git push` (lần sau)
-   - Báo URL push thành công + gợi ý bước tiếp (vd `review the whole branch` hoặc `create a merge request`)
-4. **KHÔNG tự push** kể cả khi trigger có "push" trong tên
+3. Đợi xác nhận rõ ràng ("ok push" / "yes" / "push đi") rồi:
+4. **Detect upstream tracking trước khi push** (handle rename scenario):
+   ```bash
+   LOCAL=$(git branch --show-current)
+   UPSTREAM=$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null)
+   ```
+
+   | Trạng thái | Lệnh push |
+   |---|---|
+   | Không có upstream (`UPSTREAM` rỗng) | `git push -u origin <LOCAL>` (lần đầu push branch này) |
+   | `UPSTREAM` = `origin/<LOCAL>` (tên local match remote) | `git push` (bình thường) |
+   | `UPSTREAM` = `origin/<old-name>` (tên local KHÁC upstream) | **Rename scenario detected**. STOP, báo user: "Local branch `<LOCAL>` đang track `<UPSTREAM>` — có vẻ branch đã được rename. Cần dùng trigger `rename branch <LOCAL>` để sync remote, KHÔNG nên push trực tiếp" |
+
+5. Sau khi push thành công: báo URL push + gợi ý bước tiếp (vd `review the whole branch` hoặc `create a merge request`)
+6. **KHÔNG tự push** kể cả khi trigger có "push" trong tên
+7. **KHÔNG ép push qua rename scenario** — bắt user đi qua `rename branch` flow để cleanup remote đúng cách
 
 #### Allowed types
 

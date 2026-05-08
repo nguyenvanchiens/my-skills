@@ -94,11 +94,12 @@ Skill này không phải `/slash command` mà kích hoạt bằng **trigger phra
 
 | Prompt | Hành động |
 |---|---|
-| `create branch from task <TASK-ID>` | Bóc tách task title → đề xuất branch ngắn (2-4 từ key, ≤50 chars), pull `main`, `git checkout -b feature/<TASK-ID>-<short-desc>` |
+| `create branch from task <TASK-ID>` | Bóc tách task title → đề xuất 1-2 branch ngắn (2-4 từ key, ≤50 chars), **DỪNG hỏi user pick**, pull `main`, rồi mới `git checkout -b feature/<TASK-ID>-<short-desc>` |
+| `rename branch <new-name>` | Đổi tên branch hiện tại đồng bộ local + remote. Detect upstream → nếu chưa push: rename thuần. Đã push: rename local + push tên mới + hỏi xóa branch cũ trên remote. Tránh tình trạng local≠remote name làm hỏng push/MR sau đó |
 | (paste mô tả task Jira) | Đọc scope, sinh code theo convention project |
 | `review the last change` | Chạy `git diff`, list issues `#1`, `#2`... |
 | `review the whole branch` | Review cumulative branch vs `main` qua 3 agent song song (Reuse / Quality / Efficiency), tự fix issues. **Macro review** trước khi commit cuối / mở MR. |
-| `commit and push` (kèm `--quick` nếu cần) | Self-contained — kế thừa toàn bộ spec của `/commit`: probe repo, partial-staging guard, atomic check, `.commit-scopes` allowlist, 11 types, footer (`Closes`/`Refs`...), Quick mode, WIP/Spike, revert format. TASK-ID tự lấy từ tên nhánh. Commit local xong **HỎI user** có push không (không tự push). Không cần cài skill `commit` riêng. |
+| `commit and push` (kèm `--quick` nếu cần) | Self-contained — kế thừa toàn bộ spec của `/commit`: probe repo, partial-staging guard, atomic check, `.commit-scopes` allowlist, 11 types, footer (`Closes`/`Refs`...), Quick mode, WIP/Spike, revert format. TASK-ID tự lấy từ tên nhánh. Commit local xong **HỎI user** có push không (không tự push). Detect upstream tracking — nếu local branch khác upstream (rename scenario) → STOP, hướng user qua `rename branch`. Không cần cài skill `commit` riêng. |
 | `create a merge request` | `glab mr create` với title/description chuẩn |
 | `review the MR !<N>` | Lấy `glab mr diff <N>` + comment đã có. **MR chưa có comment** → review mới, list issues + verdict. **MR đã có comment** → review tiếp nối: đối chiếu issue cũ (`✓ Resolved` / `❌ Still open` / `⚠️ Partially`) + chỉ review commit mới push thêm |
 | `post review result to the MR` | `glab mr note` đăng comment Markdown |
