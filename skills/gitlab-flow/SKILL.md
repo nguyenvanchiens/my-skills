@@ -10,10 +10,36 @@ Quy trình chuẩn cho một feature/bugfix mới. Có 2 vai trò: **Developer**
 ## Conventions
 
 ### Branch naming
-- Feature: `feature/<TASK-ID>-<short-description-kebab>`
-- Bugfix: `bugfix/<TASK-ID>-<short-description-kebab>`
-- Hotfix: `hotfix/<TASK-ID>-<short-description-kebab>`
-- Mô tả ngắn gọn, không dấu, dùng `-` ngăn cách. Ví dụ: `feature/WRA-40-Gioi-han-domain-account`
+- **Default: mọi branch dùng `feature/`** — bất kể task là feature, bug fix, hay hotfix.
+- Format: `feature/<TASK-ID>-<short-desc>`
+- Bug-fix branches dưới `feature/`: mô tả **trạng thái bug** bằng direction marker (`Duplicate`, `Stale`, `Missing`, `Broken`, `Wrong`, `Slow`) thay vì verb "Fix" — vd `feature/HNCW-311-Duplicate-survey-log`
+- **Override**: user chủ động gõ `bugfix/...` hoặc `hotfix/...` trong prompt (Mode A) → skill respect và tạo đúng prefix đó. Skill **KHÔNG** tự động chọn `bugfix/` hay `hotfix/` dựa trên nội dung task.
+
+**Quy tắc `<short-desc>`** (đủ để hiểu task ở first glance, chi tiết để Jira giữ):
+
+| Rule | Detail |
+|---|---|
+| Độ dài tổng | ≤ 50 ký tự cả branch (target ≤ 40). Vượt → rút thêm |
+| Số từ | 2-4 từ key. Filler bị drop |
+| Ngôn ngữ | Tiếng Việt không dấu, kebab-case (`-` ngăn cách) |
+| Capitalization | **Sentence case STRICT**: chỉ chữ cái đầu của từ đầu tiên trong description viết hoa. **Mọi từ sau (KỂ CẢ viết tắt như `NVKD`, `VAT`, `API`, `JWT`)** đều lowercase. Vd `Bao-cao-ngay-nvkd` (KHÔNG `Bao-cao-ngay-NVKD`), `Vat-discount` (KHÔNG `VAT-discount`), `Gioi-han-domain-account`. TASK-ID giữ nguyên uppercase per Jira convention |
+| Drop **type filler** | "Cai-tien", "Update", "Improve", "Fix", "Sua", "Sua-loi", "Them", "Tao", "Add", "Create", "Bo-sung" — đều bỏ. Với bug fix, mô tả **trạng thái bug** (`Duplicate`, `Stale`, `Missing`, `Broken`) thay vì verb "Fix" |
+| **KEEP direction marker** | "Cho-phep"/"Allow", "Khong-cho-phep"/"Disallow", "Validate", "Block", "Restrict", "Enforce" — chúng nói **WHAT** behavior. Không có chúng → ambiguous (allow? disallow? validate?) |
+| **KEEP context marker** | "Show"/"Display"/"Hide" (UI layer), "Filter"/"Sort"/"Search"/"Calculate" (logic layer), "Sync"/"Migrate"/"Schedule"/"Export"/"Import" (system layer) — chúng nói **TẦNG/CÁCH THỨC** của feature, mà `feature/` prefix không cover. Vd `Show-order-info` rõ hơn `Order-info` (display? backend? API?) |
+| Drop scope marker | Tag dạng `[Supermarket - AU]` ở đầu task title KHÔNG đưa vào branch (giữ cho commit scope) |
+| Drop constraint phụ | Implementation detail như "áp dụng cho sp non-weight" — bỏ. Đó thuộc commit body / Jira description |
+| Ưu tiên giữ | **Direction/Context + Action/Object + Phạm vi** (vd `Allow-qty-0-checkin-checkout`, `Show-order-info-uber-doordash`). Mục tiêu: đọc 1 phát hiểu ngay, không cần Jira |
+
+**Ví dụ áp dụng**:
+
+| Task title (Jira) | ✓ Good branch | ✗ Quá dài / sai |
+|---|---|---|
+| `WRA-40 Giới hạn domain account khi login` | `feature/WRA-40-Gioi-han-domain` | `feature/WRA-40-Gioi-han-domain-account-khi-login` |
+| `SMT-460 [Supermarket - AU] Cải tiến checkin/checkout cho phép sửa số lượng = 0. Áp dụng cho sp KHÔNG phải hàng đổi trọng lượng` | `feature/SMT-460-Allow-qty-0-checkin-checkout` | `feature/SMT-460-Cai-tien-cho-phep-sua-so-luong-0-checkin-checkout-non-weight` |
+| `WRA-334 Bug: tính sai VAT đơn có discount` | `feature/WRA-334-Wrong-vat-discount` | `bugfix/WRA-334-Fix-tinh-sai-VAT-don-co-discount` |
+| `WRA-501 Hotfix: timeout khi gọi Jira` | `feature/WRA-501-Jira-timeout` | `hotfix/WRA-501-Fix-timeout-khi-goi-Jira-API` |
+| `HNCW-311 Sửa lỗi ghi log survey 2 lần` | `feature/HNCW-311-Duplicate-survey-log` | `bugfix/HNCW-311-Fix-log-survey-2-lan` |
+| `SMT-516 [Supermarket - AU] Bổ sung "Mã tham chiếu", "Mã đơn hàng", "Tổng giá trị đơn" trong chi tiết đơn hàng checkout Uber & Doordash` | `feature/SMT-516-Show-order-info-uber-doordash` | `feature/SMT-516-Order-info-uber-doordash` (thiếu context marker — không rõ display hay backend) |
 
 ### Commit message
 - Format: `<type>(<scope>): <subject> (<TASK-ID>)`
@@ -29,12 +55,57 @@ Quy trình chuẩn cho một feature/bugfix mới. Có 2 vai trò: **Developer**
 
 ## Triggers & Procedures
 
-### "create branch <name>" hoặc "create branch from task <TASK-ID>"
-1. Nếu user chỉ đưa TASK-ID, hỏi mô tả ngắn để gắn vào tên nhánh
-2. Đảm bảo working tree sạch (`git status`); nếu có thay đổi chưa commit, hỏi user trước khi tiếp tục
-3. Checkout `main`, pull về bản mới nhất
-4. Tạo nhánh mới theo convention ở trên: `git checkout -b feature/<TASK-ID>-<desc>`
-5. Báo lại tên nhánh đã tạo
+### "create branch <name>" hoặc "create branch from task <TASK-ID>..."
+
+**Step 1 — Detect input mode** (parse phần text sau `create branch ...`):
+
+| Input pattern | Mode | Hành động |
+|---|---|---|
+| Có prefix branch type + slug, vd `feature/HNCW-313-Bao-cao-ngay-nvkd` | **A — Full branch** | Dùng **nguyên si**, KHÔNG đề xuất, KHÔNG sửa (kể cả nếu input violate convention — chỉ warn) |
+| Slug kebab-case không prefix, vd `HNCW-313-Bao-cao-ngay-nvkd` | **B — Pre-formatted slug** | Auto thêm `feature/` (convention nội bộ chỉ dùng `feature/`). **KHÔNG** bóc tách lại |
+| Raw Jira title (có dấu / space / `[...]` / `(...)`), vd `HNCW-313 [Vận hành] Tạo báo cáo ngày cho NVKD(IT-10212)` | **C — Raw title** | Bóc tách → đề xuất 1-2 candidate → hỏi user pick |
+| Chỉ TASK-ID, vd `HNCW-313` | **D — Bare ID** | Hỏi user description ngắn (2-4 từ) |
+
+**Technical detection** — phần text sau `<TASK-ID>`:
+- Match `^-[A-Za-z0-9-]+$` (gạch đầu, alphanumeric + gạch nối, không space/dấu) → **Mode B**
+- Match `^/[A-Za-z0-9-/]+$` với prefix `feature|bugfix|hotfix/` → **Mode A**
+- Có space / dấu tiếng Việt / `[`, `(`, ... → **Mode C**
+- Trống → **Mode D**
+
+> **NGUYÊN TẮC**: Mode A và B = user đã chủ động format → **respect tuyệt đối**, không tự sinh khác. Mode C và D mới được phép bóc tách + đề xuất.
+
+**Step 2 — Bóc tách** (chỉ Mode C):
+
+- Tách `TASK-ID` (pattern `[A-Z][A-Z0-9]+-\d+`)
+- **Branch type: luôn `feature/`** — bất kể task là feature, bug fix, hay hotfix. Convention nội bộ chỉ dùng 1 prefix. Chỉ tạo `bugfix/` hoặc `hotfix/` khi user **chủ động gõ rõ** prefix đó trong Mode A (vd `create branch from task bugfix/HNCW-311-Duplicate-survey-log`).
+- Bỏ scope marker đầu title (`[Supermarket - AU]`, `[Mobile]`...)
+- Bỏ reference ticket khác (`(IT-12468)`, `(linked WRA-9)`)
+- Drop type filler (xem rule mục Branch naming)
+- **KEEP direction marker** (`Cho-phep`, `Allow`, `Validate`, `Block`, `Disallow`, `Restrict`, `Enforce`)
+- Lấy 2-4 từ key: **direction + action + phạm vi**
+
+**Step 3 — Đề xuất** (Mode C, D):
+
+- Đưa 1-2 candidate kèm length character count
+- Hỏi user pick option nào, hoặc override description
+
+**Step 4 — Tạo branch** (mọi mode):
+
+1. Đảm bảo working tree sạch (`git status`); có thay đổi chưa commit → hỏi user trước khi tiếp tục
+2. Checkout `main`, pull về bản mới nhất: `git fetch origin main && git checkout main && git pull`
+3. Tạo branch:
+   - Mode A/B: `git checkout -b <input-nguyên-si>` (Mode B: thêm prefix `feature/` mặc định)
+   - Mode C/D: `git checkout -b <branch-user-pick>`
+4. Báo lại tên branch + length character count
+
+**Edge case**:
+
+| Tình huống | Xử lý |
+|---|---|
+| Mode A/B branch >50 chars | Warn user nhưng **KHÔNG ép sửa** — user đã chủ động chọn |
+| Mode C sau khi trim vẫn >50 chars | Đề xuất viết tắt (`qty` thay `so-luong`, `co` thay `checkout`) hoặc bỏ phạm vi |
+| TASK-ID không match pattern `[A-Z][A-Z0-9]+-\d+` | STOP, hỏi user |
+| Cần branch type khác `feature/` | User phải **gõ rõ prefix** trong input, vd `create branch from task bugfix/HNCW-311-Duplicate-survey-log` (Mode A — skill dùng nguyên si). Skill **KHÔNG** tự suy đoán `bugfix/`/`hotfix/` từ nội dung task |
 
 ### Sinh code từ mô tả task
 - Khi user paste mô tả task Jira làm prompt, đọc kỹ và xác nhận lại scope trước khi code nếu có chỗ mơ hồ

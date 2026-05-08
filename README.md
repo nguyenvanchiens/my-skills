@@ -94,7 +94,7 @@ Skill này không phải `/slash command` mà kích hoạt bằng **trigger phra
 
 | Prompt | Hành động |
 |---|---|
-| `create branch from task <TASK-ID>` | Pull `main`, tạo nhánh `feature/<TASK-ID>-<desc>` theo convention |
+| `create branch from task <TASK-ID>` | Bóc tách task title → đề xuất branch ngắn (2-4 từ key, ≤50 chars), pull `main`, `git checkout -b feature/<TASK-ID>-<short-desc>` |
 | (paste mô tả task Jira) | Đọc scope, sinh code theo convention project |
 | `review the last change` | Chạy `git diff`, list issues `#1`, `#2`... |
 | `review the whole branch` | Review cumulative branch vs `main` qua 3 agent song song (Reuse / Quality / Efficiency), tự fix issues. **Macro review** trước khi commit cuối / mở MR. |
@@ -134,7 +134,7 @@ Skill này không phải `/slash command` mà kích hoạt bằng **trigger phra
 
 ### Convention
 
-- **Branch**: `feature/<TASK-ID>-<desc>` | `bugfix/<TASK-ID>-<desc>` | `hotfix/<TASK-ID>-<desc>`
+- **Branch**: **default `feature/<TASK-ID>-<short-desc>`** cho mọi loại thay đổi (kể cả bug fix). User override bằng cách tự gõ `bugfix/...` hoặc `hotfix/...` (Mode A — skill respect nguyên si). Desc 2-4 từ key, kebab-case, không dấu, **tổng ≤50 chars**. Drop **type filler** (`Cai-tien`, `Improve`, `Fix`, `Sua`, `Tao`, `Add`, `Create`, `Them`, `Bo-sung`) nhưng **KEEP direction marker** (`Allow`, `Validate`, `Block`, `Duplicate`, `Stale`, `Missing`) **và context marker** (`Show`/`Display`, `Filter`/`Sort`, `Sync`/`Migrate`). Vd `feature/SMT-460-Allow-qty-0-checkin-checkout` (43), bug fix: `feature/HNCW-311-Duplicate-survey-log` (37)
 - **Commit**: `<type>(<scope>): <subject> (<TASK-ID>)` (vd `feat(auth): restrict login to allowed domains (WRA-40)`)
 - **Target branch**: mặc định `main` — nếu repo dùng `master`, thêm dòng vào `CLAUDE.md` của project: `Default branch: master (not main)`
 
