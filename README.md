@@ -93,18 +93,44 @@ Cài global (dùng cho mọi project):
 npx skills add nguyenvanchiens/my-skills -s impeccable -s tailwind-v4-shadcn -s shadcnblocks-ui -s aceternity-ui -s react-best-practices -s react-composition-patterns -s react-hook-form-zod -s theme-factory -s web-artifacts-builder -s vitest-testing -y -g -a claude-code --copy
 ```
 
-#### Bundle Backend ASP.NET Core Web API — 1 lệnh cài 8 skills
+#### Bundle Backend ASP.NET Core — Core (8 skills, đủ cho dev cơ bản)
 
-Bundle gồm: framework (`aspnet-core`), API patterns (`web-api`, `minimal-apis`), ORM (`entity-framework-core`, `optimizing-ef-core-queries`), modern C# (`modern-csharp`), router (`dotnet`), test (`xunit`).
+Bundle gồm: framework (`aspnet-core`), UI server-rendered (`aspnet-mvc`, `blazor`), API patterns (`web-api`, `minimal-apis`), ORM (`entity-framework-core`), modern C# (`modern-csharp`), router (`dotnet`).
 
 Cài cho project hiện tại:
 ```bash
-npx skills add nguyenvanchiens/my-skills -s aspnet-core -s web-api -s minimal-apis -s entity-framework-core -s optimizing-ef-core-queries -s modern-csharp -s dotnet -s xunit -y -a claude-code --copy
+npx skills add nguyenvanchiens/my-skills -s aspnet-core -s aspnet-mvc -s blazor -s web-api -s minimal-apis -s entity-framework-core -s modern-csharp -s dotnet -y -a claude-code --copy
 ```
 
-Cài global (dùng cho mọi project):
+Cài global:
 ```bash
-npx skills add nguyenvanchiens/my-skills -s aspnet-core -s web-api -s minimal-apis -s entity-framework-core -s optimizing-ef-core-queries -s modern-csharp -s dotnet -s xunit -y -g -a claude-code --copy
+npx skills add nguyenvanchiens/my-skills -s aspnet-core -s aspnet-mvc -s blazor -s web-api -s minimal-apis -s entity-framework-core -s modern-csharp -s dotnet -y -g -a claude-code --copy
+```
+
+#### Bundle Backend ASP.NET Core — Production (8 skills bổ sung, cho app production-grade)
+
+Bundle gồm: performance (`optimizing-ef-core-queries`), observability (`aspnet-logging`, `aspnet-health-checks`), performance (`aspnet-caching`), background work (`background-jobs`), auth nâng cao (`aspnet-auth-advanced`), testing (`xunit`, `dotnet-testing-patterns`).
+
+Cài cho project hiện tại:
+```bash
+npx skills add nguyenvanchiens/my-skills -s optimizing-ef-core-queries -s aspnet-logging -s aspnet-caching -s aspnet-health-checks -s background-jobs -s aspnet-auth-advanced -s xunit -s dotnet-testing-patterns -y -a claude-code --copy
+```
+
+Cài global:
+```bash
+npx skills add nguyenvanchiens/my-skills -s optimizing-ef-core-queries -s aspnet-logging -s aspnet-caching -s aspnet-health-checks -s background-jobs -s aspnet-auth-advanced -s xunit -s dotnet-testing-patterns -y -g -a claude-code --copy
+```
+
+#### Bundle Backend Full Stack — 16 skills (Core + Production)
+
+Cài tất cả skills BE .NET trong 1 lệnh:
+```bash
+npx skills add nguyenvanchiens/my-skills -s aspnet-core -s aspnet-mvc -s blazor -s web-api -s minimal-apis -s entity-framework-core -s optimizing-ef-core-queries -s modern-csharp -s dotnet -s aspnet-logging -s aspnet-caching -s aspnet-health-checks -s background-jobs -s aspnet-auth-advanced -s xunit -s dotnet-testing-patterns -y -a claude-code --copy
+```
+
+Cài global:
+```bash
+npx skills add nguyenvanchiens/my-skills -s aspnet-core -s aspnet-mvc -s blazor -s web-api -s minimal-apis -s entity-framework-core -s optimizing-ef-core-queries -s modern-csharp -s dotnet -s aspnet-logging -s aspnet-caching -s aspnet-health-checks -s background-jobs -s aspnet-auth-advanced -s xunit -s dotnet-testing-patterns -y -g -a claude-code --copy
 ```
 
 ### Cập nhật skills lên bản mới
@@ -209,22 +235,26 @@ my-skills/
 ├── README.md
 ├── LICENSE
 └── skills/
-    ├── karpathy-guidelines/
-    │   ├── SKILL.md
-    │   └── LICENSE
-    ├── impeccable/
-    │   ├── SKILL.md
-    │   ├── LICENSE
-    │   ├── agents/
-    │   ├── reference/
-    │   └── scripts/
-    ├── commit/
-    │   └── SKILL.md
-    ├── review-branch/
-    │   └── SKILL.md
-    └── gitlab-flow/
-        └── SKILL.md
+    ├── <skill-name>/
+    │   ├── SKILL.md          # bắt buộc — frontmatter `name` + `description`
+    │   ├── LICENSE           # tùy chọn — giữ license gốc nếu fork
+    │   ├── manifest.json     # tùy chọn — metadata bổ sung
+    │   └── references/       # tùy chọn — markdown sâu cho deep-dive
+    │       └── *.md
+    └── ...
 ```
+
+**Phân nhóm skills** (~22 skills, xem table ở trên cho mô tả):
+
+| Nhóm | Skills |
+|---|---|
+| Workflow & quality | `gitlab-flow`, `commit`, `review-branch`, `karpathy-guidelines` |
+| Frontend / Design | `impeccable`, `tailwind-v4-shadcn`, `shadcnblocks-ui`, `aceternity-ui`, `theme-factory`, `web-artifacts-builder` |
+| React patterns | `react-best-practices`, `react-composition-patterns`, `react-hook-form-zod` |
+| Frontend testing | `vitest-testing` |
+| .NET — Core | `dotnet`, `aspnet-core`, `aspnet-mvc`, `blazor`, `web-api`, `minimal-apis`, `entity-framework-core`, `modern-csharp` |
+| .NET — Production | `optimizing-ef-core-queries`, `aspnet-logging`, `aspnet-caching`, `aspnet-health-checks`, `background-jobs`, `aspnet-auth-advanced` |
+| .NET — Testing | `xunit`, `dotnet-testing-patterns` |
 
 Khi thêm skill mới: tạo thư mục `skills/<skill-name>/` chứa `SKILL.md` (có frontmatter `name`, `description`). CLI `npx skills` sẽ tự nhận diện.
 
@@ -239,7 +269,8 @@ Repo này tổng hợp lại các skill open-source xuất sắc từ cộng đ�
 - **Mason James** ([@masonjames](https://github.com/masonjames)) — `shadcnblocks-ui` (Shadcn UI & ShadcnBlocks integration).
 - **Secondsky / Claude Skills Maintainers** ([secondsky/claude-skills](https://github.com/secondsky/claude-skills)) — `tailwind-v4-shadcn`, `aceternity-ui`, `react-hook-form-zod`, `vitest-testing`.
 - **Vercel Engineering** (qua secondsky) — `react-best-practices`, `react-composition-patterns`.
-- **Managed Code** ([managedcode/dotnet-skills](https://github.com/managedcode/dotnet-skills)) — toàn bộ nhóm .NET stack (`aspnet-core`, `web-api`, `minimal-apis`, `entity-framework-core`, `optimizing-ef-core-queries`, `modern-csharp`, `dotnet`, `xunit`). Repo này embed sẵn các skill chính thức từ [dotnet/skills](https://github.com/dotnet/skills) (Microsoft) trong các thư mục `Official-DotNet-*`.
+- **Managed Code** ([managedcode/dotnet-skills](https://github.com/managedcode/dotnet-skills)) — nhóm .NET base (`aspnet-core`, `web-api`, `minimal-apis`, `entity-framework-core`, `optimizing-ef-core-queries`, `modern-csharp`, `dotnet`, `xunit`). Repo này embed sẵn các skill chính thức từ [dotnet/skills](https://github.com/dotnet/skills) (Microsoft) trong các thư mục `Official-DotNet-*`.
+- **Nội bộ** — bổ sung cho stack ASP.NET Core production-grade: `aspnet-mvc`, `blazor`, `aspnet-logging`, `aspnet-caching`, `aspnet-health-checks`, `background-jobs`, `aspnet-auth-advanced`, `dotnet-testing-patterns`.
 
 ## License
 
