@@ -93,45 +93,50 @@ Cài global (dùng cho mọi project):
 npx skills add nguyenvanchiens/my-skills -s impeccable -s tailwind-v4-shadcn -s shadcnblocks-ui -s aceternity-ui -s react-best-practices -s react-composition-patterns -s react-hook-form-zod -s theme-factory -s web-artifacts-builder -s vitest-testing -y -g -a claude-code --copy
 ```
 
-#### Bundle Backend ASP.NET Core — Core (8 skills, đủ cho dev cơ bản)
+#### Bundle Backend ASP.NET Core — Full Stack 16 skills (★ Recommended)
 
-Bundle gồm: framework (`aspnet-core`), UI server-rendered (`aspnet-mvc`, `blazor`), API patterns (`web-api`, `minimal-apis`), ORM (`entity-framework-core`), modern C# (`modern-csharp`), router (`dotnet`).
+Bundle đầy đủ cho stack ASP.NET Core production-grade: framework + UI (MVC/Blazor) + API + ORM + observability (logging/caching/health checks) + background jobs + auth nâng cao + testing.
 
-Cài cho project hiện tại:
-```bash
-npx skills add nguyenvanchiens/my-skills -s aspnet-core -s aspnet-mvc -s blazor -s web-api -s minimal-apis -s entity-framework-core -s modern-csharp -s dotnet -y -a claude-code --copy
-```
-
-Cài global:
-```bash
-npx skills add nguyenvanchiens/my-skills -s aspnet-core -s aspnet-mvc -s blazor -s web-api -s minimal-apis -s entity-framework-core -s modern-csharp -s dotnet -y -g -a claude-code --copy
-```
-
-#### Bundle Backend ASP.NET Core — Production (8 skills bổ sung, cho app production-grade)
-
-Bundle gồm: performance (`optimizing-ef-core-queries`), observability (`aspnet-logging`, `aspnet-health-checks`), performance (`aspnet-caching`), background work (`background-jobs`), auth nâng cao (`aspnet-auth-advanced`), testing (`xunit`, `dotnet-testing-patterns`).
+> Cài 1 lệnh là xong. Skill chỉ activate khi trigger pattern khớp → có nhiều skill không làm Claude chậm. Dung lượng ~3MB cho cả 16 SKILL.md. **Default cho hầu hết project ASP.NET Core mới.**
 
 Cài cho project hiện tại:
-```bash
-npx skills add nguyenvanchiens/my-skills -s optimizing-ef-core-queries -s aspnet-logging -s aspnet-caching -s aspnet-health-checks -s background-jobs -s aspnet-auth-advanced -s xunit -s dotnet-testing-patterns -y -a claude-code --copy
-```
-
-Cài global:
-```bash
-npx skills add nguyenvanchiens/my-skills -s optimizing-ef-core-queries -s aspnet-logging -s aspnet-caching -s aspnet-health-checks -s background-jobs -s aspnet-auth-advanced -s xunit -s dotnet-testing-patterns -y -g -a claude-code --copy
-```
-
-#### Bundle Backend Full Stack — 16 skills (Core + Production)
-
-Cài tất cả skills BE .NET trong 1 lệnh:
 ```bash
 npx skills add nguyenvanchiens/my-skills -s aspnet-core -s aspnet-mvc -s blazor -s web-api -s minimal-apis -s entity-framework-core -s optimizing-ef-core-queries -s modern-csharp -s dotnet -s aspnet-logging -s aspnet-caching -s aspnet-health-checks -s background-jobs -s aspnet-auth-advanced -s xunit -s dotnet-testing-patterns -y -a claude-code --copy
 ```
 
-Cài global:
+Cài global (recommended nếu bạn chuyên ASP.NET Core — mọi project mới tự có sẵn):
 ```bash
 npx skills add nguyenvanchiens/my-skills -s aspnet-core -s aspnet-mvc -s blazor -s web-api -s minimal-apis -s entity-framework-core -s optimizing-ef-core-queries -s modern-csharp -s dotnet -s aspnet-logging -s aspnet-caching -s aspnet-health-checks -s background-jobs -s aspnet-auth-advanced -s xunit -s dotnet-testing-patterns -y -g -a claude-code --copy
 ```
+
+<details>
+<summary><b>Advanced — Bundle Core (8) hoặc Production (8) riêng</b></summary>
+
+Chỉ dùng nếu cần lựa chọn theo từng bước hoặc muốn cài subset. Nếu không chắc → dùng Full Stack ở trên.
+
+##### Bundle Core 8 — đủ cho dev cơ bản, POC, learn
+
+Gồm: `aspnet-core`, `aspnet-mvc`, `blazor`, `web-api`, `minimal-apis`, `entity-framework-core`, `modern-csharp`, `dotnet`.
+
+```bash
+npx skills add nguyenvanchiens/my-skills -s aspnet-core -s aspnet-mvc -s blazor -s web-api -s minimal-apis -s entity-framework-core -s modern-csharp -s dotnet -y -a claude-code --copy
+```
+
+Global: thêm `-g` trước `-a claude-code`.
+
+##### Bundle Production 8 — bổ sung cho app production-grade
+
+> ⚠️ Bundle này KHÔNG tự đứng được — phải đã có Core cài trước. Skill production reference Core (vd `optimizing-ef-core-queries` reference `entity-framework-core`).
+
+Gồm: `optimizing-ef-core-queries`, `aspnet-logging`, `aspnet-caching`, `aspnet-health-checks`, `background-jobs`, `aspnet-auth-advanced`, `xunit`, `dotnet-testing-patterns`.
+
+```bash
+npx skills add nguyenvanchiens/my-skills -s optimizing-ef-core-queries -s aspnet-logging -s aspnet-caching -s aspnet-health-checks -s background-jobs -s aspnet-auth-advanced -s xunit -s dotnet-testing-patterns -y -a claude-code --copy
+```
+
+Global: thêm `-g` trước `-a claude-code`.
+
+</details>
 
 ### Cập nhật skills lên bản mới
 
