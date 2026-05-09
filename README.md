@@ -20,6 +20,22 @@ Bộ sưu tập skills cá nhân cho Claude Code và các AI coding harness khá
 | [`theme-factory`](skills/theme-factory/) | 10 theme preset (color palette + font pairing) cho slides, docs, HTML landing page. Có thể sinh theme mới on-the-fly. | [anthropics/skills](https://github.com/anthropics/skills) | Source-available |
 | [`web-artifacts-builder`](skills/web-artifacts-builder/) | Bộ scripts build HTML artifact đa component (React + Tailwind + shadcn/ui) cho claude.ai — state management, routing, multi-component. | [anthropics/skills](https://github.com/anthropics/skills) | Source-available |
 | [`vitest-testing`](skills/vitest-testing/) | Unit + integration test với Vitest (Vite-powered HMR, native ESM, mocking). Hợp project Vite. | [secondsky/claude-skills](https://github.com/secondsky/claude-skills) | MIT |
+| [`aspnet-core`](skills/aspnet-core/) | Build/debug/modernize ASP.NET Core: hosting, middleware, security, configuration, logging, deployment patterns trên .NET hiện hành. | [managedcode/dotnet-skills](https://github.com/managedcode/dotnet-skills) | MIT |
+| [`aspnet-mvc`](skills/aspnet-mvc/) | ASP.NET Core MVC server-rendered: Razor Views, View Models, ModelState validation, Tag Helpers, View Components, Areas, PRG pattern. | Nội bộ | MIT |
+| [`blazor`](skills/blazor/) | Blazor .NET 8+ unified: 5 render modes (Static SSR, Stream, InteractiveServer, InteractiveWebAssembly, InteractiveAuto), components, lifecycle, EditForm, JS interop, state management. | Nội bộ | MIT |
+| [`web-api`](skills/web-api/) | Controller-based ASP.NET Core API: controller convention, model binding nâng cao, validation, OData, JsonPatch. | [managedcode/dotnet-skills](https://github.com/managedcode/dotnet-skills) | MIT |
+| [`minimal-apis`](skills/minimal-apis/) | Thiết kế Minimal API trên ASP.NET Core 6+: handler-first endpoint, route group, filter, composition nhẹ. | [managedcode/dotnet-skills](https://github.com/managedcode/dotnet-skills) | MIT |
+| [`entity-framework-core`](skills/entity-framework-core/) | EF Core 7+/8/9: modeling, migration, query translation, performance, DbContext lifetime. | [managedcode/dotnet-skills](https://github.com/managedcode/dotnet-skills) | MIT |
+| [`optimizing-ef-core-queries`](skills/optimizing-ef-core-queries/) | Tối ưu query EF Core: fix N+1, chọn tracking mode, compiled queries, performance trap thường gặp. | [managedcode/dotnet-skills](https://github.com/managedcode/dotnet-skills) (mirror official MS) | MIT |
+| [`modern-csharp`](skills/modern-csharp/) | C# hiện đại theo `LangVersion` của repo (đặc biệt C# 13/14): record, pattern matching, async, nullable refs. | [managedcode/dotnet-skills](https://github.com/managedcode/dotnet-skills) | MIT |
+| [`dotnet`](skills/dotnet/) | Router skill cho .NET tổng quát — phân loại app model + cross-cutting concern, rồi chuyển tới skill .NET cụ thể. | [managedcode/dotnet-skills](https://github.com/managedcode/dotnet-skills) | MIT |
+| [`xunit`](skills/xunit/) | Viết/chạy/sửa test xUnit (`[Fact]`, `[Theory]`, `xunit.v3`). Đúng CLI, package, runner trên VSTest hoặc Microsoft.Testing.Platform. | [managedcode/dotnet-skills](https://github.com/managedcode/dotnet-skills) | MIT |
+| [`dotnet-testing-patterns`](skills/dotnet-testing-patterns/) | Test design: AAA, Moq/NSubstitute, FluentAssertions, `WebApplicationFactory`, Testcontainers, Bogus, `TimeProvider`/`FakeTimeProvider`, Builder pattern. Bổ sung cho `xunit` (focus runner). | Nội bộ | MIT |
+| [`aspnet-logging`](skills/aspnet-logging/) | Structured logging với `ILogger<T>` + Serilog (sinks, enrichment, correlation ID), request logging middleware, sensitive data redaction, OpenTelemetry. | Nội bộ | MIT |
+| [`aspnet-caching`](skills/aspnet-caching/) | `IMemoryCache` / `IDistributedCache` (Redis) / `HybridCache` (.NET 9), Output Caching, cache-aside, stampede prevention, TTL/invalidation strategies. | Nội bộ | MIT |
+| [`aspnet-health-checks`](skills/aspnet-health-checks/) | Health probes cho K8s/Docker: tách `/healthz/live` vs `/healthz/ready`, AddHealthChecks() + DB/Redis/external probes, custom checks, UI dashboard. | Nội bộ | MIT |
+| [`background-jobs`](skills/background-jobs/) | `BackgroundService`/`Channel<T>` (built-in), Hangfire (persistent + dashboard + retry), Quartz.NET (cron), pattern fire-and-forget/scheduled/recurring/continuation. | Nội bộ | MIT |
+| [`aspnet-auth-advanced`](skills/aspnet-auth-advanced/) | JWT issue + refresh rotation, OAuth2/OIDC (Google/Microsoft/AzureAD), ASP.NET Identity scaffolding, multi-scheme (JWT+Cookie), policy/claim/role-based authorization, anti-forgery cho SPA. | Nội bộ | MIT |
 
 ## Cài đặt
 
@@ -77,6 +93,20 @@ Cài global (dùng cho mọi project):
 npx skills add nguyenvanchiens/my-skills -s impeccable -s tailwind-v4-shadcn -s shadcnblocks-ui -s aceternity-ui -s react-best-practices -s react-composition-patterns -s react-hook-form-zod -s theme-factory -s web-artifacts-builder -s vitest-testing -y -g -a claude-code --copy
 ```
 
+#### Bundle Backend ASP.NET Core Web API — 1 lệnh cài 8 skills
+
+Bundle gồm: framework (`aspnet-core`), API patterns (`web-api`, `minimal-apis`), ORM (`entity-framework-core`, `optimizing-ef-core-queries`), modern C# (`modern-csharp`), router (`dotnet`), test (`xunit`).
+
+Cài cho project hiện tại:
+```bash
+npx skills add nguyenvanchiens/my-skills -s aspnet-core -s web-api -s minimal-apis -s entity-framework-core -s optimizing-ef-core-queries -s modern-csharp -s dotnet -s xunit -y -a claude-code --copy
+```
+
+Cài global (dùng cho mọi project):
+```bash
+npx skills add nguyenvanchiens/my-skills -s aspnet-core -s web-api -s minimal-apis -s entity-framework-core -s optimizing-ef-core-queries -s modern-csharp -s dotnet -s xunit -y -g -a claude-code --copy
+```
+
 ### Cập nhật skills lên bản mới
 
 ```bash
@@ -102,7 +132,7 @@ npx skills add nguyenvanchiens/my-skills --all -a cursor --copy
 npx skills add nguyenvanchiens/my-skills --all -a "*" --copy
 ```
 
-> **Note**: hướng dẫn dùng chi tiết bên dưới chỉ tập trung cho `gitlab-flow` (skill chính của bộ này). Các skill còn lại (`karpathy-guidelines`, `impeccable`, `commit`, `review-branch`, và các skill nhóm React/Vite stack: `tailwind-v4-shadcn`, `shadcnblocks-ui`, `aceternity-ui`, `react-best-practices`, `react-composition-patterns`, `react-hook-form-zod`, `theme-factory`, `web-artifacts-builder`, `vitest-testing`) là standalone — cài rồi đọc `SKILL.md` của từng skill để biết cách dùng. Riêng `commit` và `review-branch` đã được tích hợp vào `gitlab-flow` qua các trigger `commit and push` và `review the whole branch` — nếu đã dùng `gitlab-flow` thì không cần cài lại.
+> **Note**: hướng dẫn dùng chi tiết bên dưới chỉ tập trung cho `gitlab-flow` (skill chính của bộ này). Các skill còn lại (`karpathy-guidelines`, `impeccable`, `commit`, `review-branch`, các skill nhóm React/Vite stack: `tailwind-v4-shadcn`, `shadcnblocks-ui`, `aceternity-ui`, `react-best-practices`, `react-composition-patterns`, `react-hook-form-zod`, `theme-factory`, `web-artifacts-builder`, `vitest-testing`, và các skill nhóm .NET stack: `aspnet-core`, `web-api`, `minimal-apis`, `entity-framework-core`, `optimizing-ef-core-queries`, `modern-csharp`, `dotnet`, `xunit`) là standalone — cài rồi đọc `SKILL.md` của từng skill để biết cách dùng. Riêng `commit` và `review-branch` đã được tích hợp vào `gitlab-flow` qua các trigger `commit and push` và `review the whole branch` — nếu đã dùng `gitlab-flow` thì không cần cài lại.
 
 ## Sử dụng `gitlab-flow`
 
@@ -209,6 +239,7 @@ Repo này tổng hợp lại các skill open-source xuất sắc từ cộng đ�
 - **Mason James** ([@masonjames](https://github.com/masonjames)) — `shadcnblocks-ui` (Shadcn UI & ShadcnBlocks integration).
 - **Secondsky / Claude Skills Maintainers** ([secondsky/claude-skills](https://github.com/secondsky/claude-skills)) — `tailwind-v4-shadcn`, `aceternity-ui`, `react-hook-form-zod`, `vitest-testing`.
 - **Vercel Engineering** (qua secondsky) — `react-best-practices`, `react-composition-patterns`.
+- **Managed Code** ([managedcode/dotnet-skills](https://github.com/managedcode/dotnet-skills)) — toàn bộ nhóm .NET stack (`aspnet-core`, `web-api`, `minimal-apis`, `entity-framework-core`, `optimizing-ef-core-queries`, `modern-csharp`, `dotnet`, `xunit`). Repo này embed sẵn các skill chính thức từ [dotnet/skills](https://github.com/dotnet/skills) (Microsoft) trong các thư mục `Official-DotNet-*`.
 
 ## License
 
