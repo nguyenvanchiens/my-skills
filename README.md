@@ -11,6 +11,15 @@ Bộ sưu tập skills cá nhân cho Claude Code và các AI coding harness khá
 | [`commit`](skills/commit/) | Tạo commit theo Conventional Commits, Jira ID ở cuối subject trong ngoặc đơn `(WRA-9)` (`/commit WRA-9`). Tự phân tích diff, chọn `type`/`scope`, có `--quick` mode, partial-staging guard, đọc `.commit-scopes` allowlist. **Standalone** — nếu đã cài `gitlab-flow` thì không cần cài thêm (gitlab-flow đã kế thừa toàn bộ spec này qua trigger `commit and push`). | Nội bộ | MIT |
 | [`review-branch`](skills/review-branch/) | Review toàn bộ thay đổi của branch hiện tại so với `main` (committed + uncommitted) qua 3 agent song song: reuse, quality, efficiency — rồi tự fix issue. | Nội bộ | MIT |
 | [`gitlab-flow`](skills/gitlab-flow/) | Quy trình end-to-end Jira → branch → commit → MR → review → fix → merge dùng `glab`. Chuẩn hoá branch naming, commit format và safety rules cho team GitLab. | Nội bộ | MIT |
+| [`tailwind-v4-shadcn`](skills/tailwind-v4-shadcn/) | Setup Tailwind CSS v4 + shadcn/ui + **Vite** + React. Pattern `@theme inline`, CSS variable architecture, dark mode với `ThemeProvider`, gotchas khi migrate từ v3. | [secondsky/claude-skills](https://github.com/secondsky/claude-skills) | MIT |
+| [`shadcnblocks-ui`](skills/shadcnblocks-ui/) | Kiến thức về 1,338 premium blocks + 1,189 free components từ ShadcnBlocks. Tự chọn block phù hợp khi user yêu cầu landing/dashboard/auth/ecommerce/navbar/footer. | [masonjames/Shadcnblocks-Skill](https://github.com/masonjames/Shadcnblocks-Skill) | MIT |
+| [`aceternity-ui`](skills/aceternity-ui/) | 100+ animated React components (Aceternity UI) cho Tailwind. Hero parallax, 3D effects, motion-based interactions. | [secondsky/claude-skills](https://github.com/secondsky/claude-skills) | MIT |
+| [`react-best-practices`](skills/react-best-practices/) | 57 quy tắc tối ưu performance React/Next.js từ Vercel Engineering, chia 8 nhóm theo impact để hướng dẫn refactor và sinh code. | [secondsky/claude-skills](https://github.com/secondsky/claude-skills) (Vercel) | MIT |
+| [`react-composition-patterns`](skills/react-composition-patterns/) | Compound components, render props, context provider — pattern composition để component scale, tránh boolean prop proliferation. | [secondsky/claude-skills](https://github.com/secondsky/claude-skills) (Vercel) | MIT |
+| [`react-hook-form-zod`](skills/react-hook-form-zod/) | Form type-safe với React Hook Form + Zod (`zodResolver`). Field arrays, multi-step forms, nested field, validation error pattern. | [secondsky/claude-skills](https://github.com/secondsky/claude-skills) | MIT |
+| [`theme-factory`](skills/theme-factory/) | 10 theme preset (color palette + font pairing) cho slides, docs, HTML landing page. Có thể sinh theme mới on-the-fly. | [anthropics/skills](https://github.com/anthropics/skills) | Source-available |
+| [`web-artifacts-builder`](skills/web-artifacts-builder/) | Bộ scripts build HTML artifact đa component (React + Tailwind + shadcn/ui) cho claude.ai — state management, routing, multi-component. | [anthropics/skills](https://github.com/anthropics/skills) | Source-available |
+| [`vitest-testing`](skills/vitest-testing/) | Unit + integration test với Vitest (Vite-powered HMR, native ESM, mocking). Hợp project Vite. | [secondsky/claude-skills](https://github.com/secondsky/claude-skills) | MIT |
 
 ## Cài đặt
 
@@ -39,18 +48,33 @@ Liệt kê skills có trong repo:
 npx skills add nguyenvanchiens/my-skills -l
 ```
 
-Cài skill cụ thể (thêm `-g` nếu muốn cài global):
+#### Workflow / code quality — tách cài từng skill
+
+Các skill này dùng tùy task cụ thể, thường chỉ cần chọn 1-2 cái phù hợp:
+
 ```bash
+npx skills add nguyenvanchiens/my-skills -s commit             -y -a claude-code --copy
+npx skills add nguyenvanchiens/my-skills -s review-branch      -y -a claude-code --copy
+npx skills add nguyenvanchiens/my-skills -s gitlab-flow        -y -a claude-code --copy
 npx skills add nguyenvanchiens/my-skills -s karpathy-guidelines -y -a claude-code --copy
-npx skills add nguyenvanchiens/my-skills -s impeccable        -y -a claude-code --copy
-npx skills add nguyenvanchiens/my-skills -s commit            -y -a claude-code --copy
-npx skills add nguyenvanchiens/my-skills -s review-branch     -y -a claude-code --copy
-npx skills add nguyenvanchiens/my-skills -s gitlab-flow       -y -a claude-code --copy
 ```
 
-Cài nhiều skill cùng lúc (lặp cờ `-s`):
+> **Lưu ý**: nếu cài `gitlab-flow` thì không cần cài `commit` + `review-branch` riêng (đã tích hợp qua trigger `commit and push` và `review the whole branch`).
+
+Thêm `-g` vào cuối lệnh nếu muốn cài global (dùng cho mọi project).
+
+#### Bundle UI/UX + React/Vite stack — 1 lệnh cài 10 skills
+
+Bundle gồm: design system (`impeccable`), component library (`shadcnblocks-ui`, `aceternity-ui`), Tailwind v4 + shadcn setup (`tailwind-v4-shadcn`), React patterns (`react-best-practices`, `react-composition-patterns`), forms (`react-hook-form-zod`), theme (`theme-factory`), artifact builder (`web-artifacts-builder`), test (`vitest-testing`).
+
+Cài cho project hiện tại:
 ```bash
-npx skills add nguyenvanchiens/my-skills -s commit -s review-branch -y -a claude-code --copy
+npx skills add nguyenvanchiens/my-skills -s impeccable -s tailwind-v4-shadcn -s shadcnblocks-ui -s aceternity-ui -s react-best-practices -s react-composition-patterns -s react-hook-form-zod -s theme-factory -s web-artifacts-builder -s vitest-testing -y -a claude-code --copy
+```
+
+Cài global (dùng cho mọi project):
+```bash
+npx skills add nguyenvanchiens/my-skills -s impeccable -s tailwind-v4-shadcn -s shadcnblocks-ui -s aceternity-ui -s react-best-practices -s react-composition-patterns -s react-hook-form-zod -s theme-factory -s web-artifacts-builder -s vitest-testing -y -g -a claude-code --copy
 ```
 
 ### Cập nhật skills lên bản mới
@@ -78,7 +102,7 @@ npx skills add nguyenvanchiens/my-skills --all -a cursor --copy
 npx skills add nguyenvanchiens/my-skills --all -a "*" --copy
 ```
 
-> **Note**: hướng dẫn dùng chi tiết bên dưới chỉ tập trung cho `gitlab-flow` (skill chính của bộ này). Các skill còn lại (`karpathy-guidelines`, `impeccable`, `commit`, `review-branch`) là standalone — cài rồi đọc `SKILL.md` của từng skill để biết cách dùng. Riêng `commit` và `review-branch` đã được tích hợp vào `gitlab-flow` qua các trigger `commit and push` và `review the whole branch` — nếu đã dùng `gitlab-flow` thì không cần cài lại.
+> **Note**: hướng dẫn dùng chi tiết bên dưới chỉ tập trung cho `gitlab-flow` (skill chính của bộ này). Các skill còn lại (`karpathy-guidelines`, `impeccable`, `commit`, `review-branch`, và các skill nhóm React/Vite stack: `tailwind-v4-shadcn`, `shadcnblocks-ui`, `aceternity-ui`, `react-best-practices`, `react-composition-patterns`, `react-hook-form-zod`, `theme-factory`, `web-artifacts-builder`, `vitest-testing`) là standalone — cài rồi đọc `SKILL.md` của từng skill để biết cách dùng. Riêng `commit` và `review-branch` đã được tích hợp vào `gitlab-flow` qua các trigger `commit and push` và `review the whole branch` — nếu đã dùng `gitlab-flow` thì không cần cài lại.
 
 ## Sử dụng `gitlab-flow`
 
@@ -181,6 +205,10 @@ Repo này tổng hợp lại các skill open-source xuất sắc từ cộng đ�
 - **Andrej Karpathy** — quan sát ban đầu về lỗi LLM khi code.
 - **Forrest Chang** ([@forrestchang](https://github.com/forrestchang)) — đóng gói Karpathy Guidelines thành skill.
 - **Paul Bakaus** ([@pbakaus](https://github.com/pbakaus)) — Impeccable design system.
+- **Anthropic** ([anthropics/skills](https://github.com/anthropics/skills)) — `theme-factory`, `web-artifacts-builder`.
+- **Mason James** ([@masonjames](https://github.com/masonjames)) — `shadcnblocks-ui` (Shadcn UI & ShadcnBlocks integration).
+- **Secondsky / Claude Skills Maintainers** ([secondsky/claude-skills](https://github.com/secondsky/claude-skills)) — `tailwind-v4-shadcn`, `aceternity-ui`, `react-hook-form-zod`, `vitest-testing`.
+- **Vercel Engineering** (qua secondsky) — `react-best-practices`, `react-composition-patterns`.
 
 ## License
 
