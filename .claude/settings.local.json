@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p \"C:/Users/admin/.claude/skills/gitlab-flow\")",
+      "Bash(cp \"d:/TemplateAi/Project Use/my-skills/skills/gitlab-flow/SKILL.md\" \"C:/Users/admin/.claude/skills/gitlab-flow/SKILL.md\")",
+      "Bash(cp \"d:/TemplateAi/Project Use/my-skills/skills/gitlab-flow/SKILL.md\" \"D:/HNC/IdentityServer/v4/.claude/skills/gitlab-flow/SKILL.md\")",
+      "Read(//c/Users/admin/.claude/skills/gitlab-flow/**)"
+    ]
+  }
+}
