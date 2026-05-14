@@ -8,10 +8,7 @@ Bộ sưu tập skills cá nhân cho Claude Code và các AI coding harness khá
 |---|---|---|---|
 | [`karpathy-guidelines`](skills/karpathy-guidelines/) | 4 nguyên tắc giảm lỗi LLM khi code (Think Before Coding, Simplicity First, Surgical Changes, Goal-Driven Execution). | [forrestchang/andrej-karpathy-skills](https://github.com/forrestchang/andrej-karpathy-skills) | MIT |
 | [`impeccable`](skills/impeccable/) | Hệ thống thiết kế frontend chuyên sâu (typography, color, spatial, motion, interaction, responsive, UX writing). Bao gồm 23 command như `/craft`, `/polish`, `/critique`, `/audit`, `/animate`. | [pbakaus/impeccable](https://github.com/pbakaus/impeccable) | Apache-2.0 |
-| [`commit`](skills/commit/) | Tạo commit theo Conventional Commits, Jira ID ở cuối subject trong ngoặc đơn `(WRA-9)` (`/commit WRA-9`). Tự phân tích diff, chọn `type`/`scope`, có `--quick` mode, partial-staging guard, đọc `.commit-scopes` allowlist. **Standalone** — nếu đã cài `gitlab-flow` thì không cần cài thêm (gitlab-flow đã kế thừa toàn bộ spec này qua trigger `commit and push`). | Nội bộ | MIT |
-| [`review-branch`](skills/review-branch/) | Review toàn bộ thay đổi của branch hiện tại so với `main` (committed + uncommitted) qua 3 agent song song: reuse, quality, efficiency — rồi tự fix issue. | Nội bộ | MIT |
-| [`gitlab-flow`](skills/gitlab-flow/) | Quy trình end-to-end Jira → branch → commit → MR → review → fix → merge dùng `glab`. Chuẩn hoá branch naming, commit format và safety rules cho team GitLab. | Nội bộ | MIT |
-| [`gitlab-sync`](skills/gitlab-sync/) | Resolve conflict khi sync `main → builds/dev/<app>` để deploy QA. Hỗ trợ monorepo multi-app (`portal-web-admin`, `gift-api`, ...). Dùng nhánh trung gian `sync/*` để giữ code chảy 1 chiều — không bao giờ leak `builds/*` ngược về `main`. Pair với `gitlab-flow`. | Nội bộ | MIT |
+| [`gitlab-sync`](skills/gitlab-sync/) | Resolve conflict khi sync `main → builds/dev/<app>` để deploy QA. Hỗ trợ monorepo multi-app (`portal-web-admin`, `gift-api`, ...). Dùng nhánh trung gian `sync/*` để giữ code chảy 1 chiều — không bao giờ leak `builds/*` ngược về `main`. Pair với `gitlab-flow` (đã tách sang repo riêng [`my-skills-gitlab-flow`](https://github.com/nguyenvanchiens/my-skills-gitlab-flow)). | Nội bộ | MIT |
 | [`tailwind-v4-shadcn`](skills/tailwind-v4-shadcn/) | Setup Tailwind CSS v4 + shadcn/ui + **Vite** + React. Pattern `@theme inline`, CSS variable architecture, dark mode với `ThemeProvider`, gotchas khi migrate từ v3. | [secondsky/claude-skills](https://github.com/secondsky/claude-skills) | MIT |
 | [`shadcnblocks-ui`](skills/shadcnblocks-ui/) | Kiến thức về 1,338 premium blocks + 1,189 free components từ ShadcnBlocks. Tự chọn block phù hợp khi user yêu cầu landing/dashboard/auth/ecommerce/navbar/footer. | [masonjames/Shadcnblocks-Skill](https://github.com/masonjames/Shadcnblocks-Skill) | MIT |
 | [`aceternity-ui`](skills/aceternity-ui/) | 100+ animated React components (Aceternity UI) cho Tailwind. Hero parallax, 3D effects, motion-based interactions. | [secondsky/claude-skills](https://github.com/secondsky/claude-skills) | MIT |
@@ -70,16 +67,15 @@ npx skills add nguyenvanchiens/my-skills -l
 Các skill này dùng tùy task cụ thể, thường chỉ cần chọn 1-2 cái phù hợp:
 
 ```bash
-npx skills add nguyenvanchiens/my-skills -s commit             -y -a claude-code --copy
-npx skills add nguyenvanchiens/my-skills -s review-branch      -y -a claude-code --copy
-npx skills add nguyenvanchiens/my-skills -s gitlab-flow        -y -a claude-code --copy
 npx skills add nguyenvanchiens/my-skills -s gitlab-sync        -y -a claude-code --copy
 npx skills add nguyenvanchiens/my-skills -s karpathy-guidelines -y -a claude-code --copy
 ```
 
-> **Lưu ý**:
-> - Nếu cài `gitlab-flow` thì không cần cài `commit` + `review-branch` riêng (đã tích hợp qua trigger `commit and push` và `review the whole branch`).
-> - `gitlab-sync` là **add-on** cho `gitlab-flow` — chỉ cần cài thêm nếu team dùng nhánh `builds/dev/<app>` để trigger deploy QA và cần resolve conflict `main → builds/dev`. Cài cùng `gitlab-flow` thì có đủ cho cả 2 vai trò Developer (`gitlab-flow`) và Maintainer (`gitlab-sync`).
+> **Lưu ý**: Các skill GitLab workflow (`gitlab-flow`, `commit`, `review-branch`) đã được tách sang repo riêng [`nguyenvanchiens/my-skills-gitlab-flow`](https://github.com/nguyenvanchiens/my-skills-gitlab-flow). Cài qua:
+> ```bash
+> npx skills add nguyenvanchiens/my-skills-gitlab-flow -s gitlab-flow -y -a claude-code --copy
+> ```
+> `gitlab-sync` (vẫn ở repo này) là **add-on** cho `gitlab-flow` — chỉ cần cài thêm nếu team dùng nhánh `builds/dev/<app>` để trigger deploy QA và cần resolve conflict `main → builds/dev`.
 
 Thêm `-g` vào cuối lệnh nếu muốn cài global (dùng cho mọi project).
 
@@ -167,81 +163,11 @@ npx skills add nguyenvanchiens/my-skills --all -a cursor --copy
 npx skills add nguyenvanchiens/my-skills --all -a "*" --copy
 ```
 
-> **Note**: hướng dẫn dùng chi tiết bên dưới tập trung cho `gitlab-flow` + `gitlab-sync` (cặp skill chính của bộ này). Các skill còn lại (`karpathy-guidelines`, `impeccable`, `commit`, `review-branch`, các skill nhóm React/Vite stack: `tailwind-v4-shadcn`, `shadcnblocks-ui`, `aceternity-ui`, `react-best-practices`, `react-composition-patterns`, `react-hook-form-zod`, `theme-factory`, `web-artifacts-builder`, `vitest-testing`, và các skill nhóm .NET stack: `aspnet-core`, `web-api`, `minimal-apis`, `entity-framework-core`, `optimizing-ef-core-queries`, `modern-csharp`, `dotnet`, `xunit`) là standalone — cài rồi đọc `SKILL.md` của từng skill để biết cách dùng. Riêng `commit` và `review-branch` đã được tích hợp vào `gitlab-flow` qua các trigger `commit and push` và `review the whole branch` — nếu đã dùng `gitlab-flow` thì không cần cài lại.
-
-## Sử dụng `gitlab-flow`
-
-Skill này không phải `/slash command` mà kích hoạt bằng **trigger phrase tiếng Anh** trong prompt thường. Claude tự match phrase và chạy procedure tương ứng.
-
-### Yêu cầu trước khi dùng
-
-- `git` (luôn có)
-- [`glab`](https://gitlab.com/gitlab-org/cli) — GitLab CLI. Trên Windows: `winget install GLab.GLab`
-- Đăng nhập 1 lần: `glab auth login --hostname <gitlab-host>` (token scope `api` + `write_repository`)
-
-### Bảng trigger
-
-> **Lưu ý copy-paste**: cột Prompt không dùng backtick để tránh GitHub auto-wrap thêm xuống dòng khi copy. Cứ chọn nguyên dòng prompt rồi paste vào Claude Code.
-
-| Prompt | Hành động |
-|---|---|
-| **create branch from task &lt;TASK-ID&gt;** | Bóc tách task title → đề xuất 1-2 branch ngắn (2-4 từ key, ≤50 chars), **DỪNG hỏi user pick**, pull `main`, rồi mới `git checkout -b feature/<TASK-ID>-<short-desc>` |
-| **rename branch &lt;new-name&gt;** | Đổi tên branch hiện tại đồng bộ local + remote. Detect upstream → nếu chưa push: rename thuần. Đã push: rename local + push tên mới + hỏi xóa branch cũ trên remote. Tránh tình trạng local≠remote name làm hỏng push/MR sau đó |
-| (paste mô tả task Jira) | Đọc scope, sinh code theo convention project |
-| **review the last change** | Chạy `git diff`, list issues `#1`, `#2`... |
-| **review the whole branch** | Review cumulative branch vs `main` qua 3 agent song song (Reuse / Quality / Efficiency), tự fix issues. **Macro review** trước khi commit cuối / mở MR. |
-| **commit and push** (kèm `--quick` nếu cần) | Self-contained — kế thừa toàn bộ spec của `/commit`: probe repo, partial-staging guard, atomic check, `.commit-scopes` allowlist, 11 types, footer (`Closes`/`Refs`...), Quick mode, WIP/Spike, revert format. TASK-ID tự lấy từ tên nhánh. Commit local xong **HỎI user** có push không (không tự push). Detect upstream tracking — nếu local branch khác upstream (rename scenario) → STOP, hướng user qua `rename branch`. Không cần cài skill `commit` riêng. |
-| **create a merge request** | `glab mr create` với title/description chuẩn |
-| **review the MR !&lt;N&gt;** | Lấy `glab mr diff <N>` + comment đã có. **MR chưa có comment** → review mới, list issues + verdict. **MR đã có comment** → review tiếp nối: đối chiếu issue cũ (`✓ Resolved` / `❌ Still open` / `⚠️ Partially`) + chỉ review commit mới push thêm |
-| **post review result to the MR** | `glab mr note` đăng comment Markdown |
-| **fix all issues** / **fix issue #&lt;N&gt;** | Fix các issue → tóm tắt + đề xuất commit message `fix(<scope>): address review issues #N (<TASK-ID>)` → **HỎI user xác nhận** trước khi commit/push (không tự động) |
-| **merge the request** | Check approve + CI pass → `glab mr merge --squash --remove-source-branch` |
-
-### Flow điển hình end-to-end
-
-```
-1. create branch from task WRA-40 giới hạn domain account
-2. (paste mô tả task)              → Claude code
-3. review the last change          → fix nếu cần (lặp 2↔3 nhiều lần)
-4. commit and push                 (lặp 2-4 cho từng đoạn)
-   ...
-5. review the whole branch         → macro review + auto-fix, trước MR
-6. commit and push                 → commit fix nếu /review-branch sửa gì
-7. create a merge request
-
-   --- chuyển sang vai Reviewer ---
-
-8.  review the MR !21              → Claude in review ra terminal (chưa lên GitLab)
-9.  (đọc, chỉnh nếu cần)
-10. post review result to the MR   → mới đẩy comment lên GitLab
-
-    --- quay lại vai Developer ---
-
-11. fix all issues                 → fix xong, đợi user xác nhận
-12. (xác nhận) commit and push
-13. merge the request
-```
-
-> **Lưu ý**: bước 8 và 10 là **2 prompt riêng**, không tự động nối. Mục đích để reviewer xem trước nội dung review, có thể yêu cầu Claude bổ sung/sửa, mới quyết định post lên MR.
-
-### Convention
-
-- **Branch**: **default `feature/<TASK-ID>-<short-desc>`** cho mọi loại thay đổi (kể cả bug fix). User override bằng cách tự gõ `bugfix/...` hoặc `hotfix/...` (Mode A — skill respect nguyên si). Desc 2-4 từ key, kebab-case, không dấu, **tổng ≤50 chars**. Drop **type filler** (`Cai-tien`, `Improve`, `Fix`, `Sua`, `Tao`, `Add`, `Create`, `Them`, `Bo-sung`) nhưng **KEEP direction marker** (`Allow`, `Validate`, `Block`, `Duplicate`, `Stale`, `Missing`) **và context marker** (`Show`/`Display`, `Filter`/`Sort`, `Sync`/`Migrate`). Vd `feature/SMT-460-Allow-qty-0-checkin-checkout` (43), bug fix: `feature/HNCW-311-Duplicate-survey-log` (37)
-- **Commit**: `<type>(<scope>): <subject> (<TASK-ID>)` (vd `feat(auth): restrict login to allowed domains (WRA-40)`)
-- **Target branch**: mặc định `main` — nếu repo dùng `master`, thêm dòng vào `CLAUDE.md` của project: `Default branch: master (not main)`
-
-### Safety rules
-
-- KHÔNG force push vào nhánh đã có MR mở
-- KHÔNG merge thẳng vào `main` từ local — luôn qua MR
-- KHÔNG bypass hooks (`--no-verify`) trừ khi user yêu cầu rõ
-- KHÔNG commit secrets (`.env`, key, token, password)
-
-Xem chi tiết đầy đủ ở [`skills/gitlab-flow/SKILL.md`](skills/gitlab-flow/SKILL.md).
+> **Note**: hướng dẫn dùng chi tiết bên dưới tập trung cho `gitlab-sync`. Các skill còn lại (`karpathy-guidelines`, `impeccable`, các skill nhóm React/Vite stack: `tailwind-v4-shadcn`, `shadcnblocks-ui`, `aceternity-ui`, `react-best-practices`, `react-composition-patterns`, `react-hook-form-zod`, `theme-factory`, `web-artifacts-builder`, `vitest-testing`, và các skill nhóm .NET stack: `aspnet-core`, `web-api`, `minimal-apis`, `entity-framework-core`, `optimizing-ef-core-queries`, `modern-csharp`, `dotnet`, `xunit`) là standalone — cài rồi đọc `SKILL.md` của từng skill để biết cách dùng. Skills `gitlab-flow`, `commit`, `review-branch` đã được tách sang repo riêng [`my-skills-gitlab-flow`](https://github.com/nguyenvanchiens/my-skills-gitlab-flow) — xem README repo đó để biết cách dùng.
 
 ## Sử dụng `gitlab-sync` (deploy QA cho monorepo multi-app)
 
-Skill pair với `gitlab-flow`. Sau khi feature merged main qua `gitlab-flow`, Maintainer dùng `gitlab-sync` để đưa code từ `main` lên các nhánh `builds/dev/<app>` trigger deploy QA — đặc biệt khi 2 nhánh bị conflict.
+Skill pair với `gitlab-flow` (xem [repo riêng](https://github.com/nguyenvanchiens/my-skills-gitlab-flow)). Sau khi feature merged main qua `gitlab-flow`, Maintainer dùng `gitlab-sync` để đưa code từ `main` lên các nhánh `builds/dev/<app>` trigger deploy QA — đặc biệt khi 2 nhánh bị conflict.
 
 ### Khi nào cần `gitlab-sync`
 
@@ -312,11 +238,11 @@ my-skills/
     └── ...
 ```
 
-**Phân nhóm skills** (~23 skills, xem table ở trên cho mô tả):
+**Phân nhóm skills** (xem table ở trên cho mô tả):
 
 | Nhóm | Skills |
 |---|---|
-| Workflow & quality | `gitlab-flow`, `gitlab-sync`, `commit`, `review-branch`, `karpathy-guidelines` |
+| Workflow & quality | `gitlab-sync`, `karpathy-guidelines` (xem thêm `gitlab-flow` + `commit` + `review-branch` ở repo [`my-skills-gitlab-flow`](https://github.com/nguyenvanchiens/my-skills-gitlab-flow)) |
 | Frontend / Design | `impeccable`, `tailwind-v4-shadcn`, `shadcnblocks-ui`, `aceternity-ui`, `theme-factory`, `web-artifacts-builder` |
 | React patterns | `react-best-practices`, `react-composition-patterns`, `react-hook-form-zod` |
 | Frontend testing | `vitest-testing` |
@@ -338,7 +264,7 @@ Repo này tổng hợp lại các skill open-source xuất sắc từ cộng đ�
 - **Secondsky / Claude Skills Maintainers** ([secondsky/claude-skills](https://github.com/secondsky/claude-skills)) — `tailwind-v4-shadcn`, `aceternity-ui`, `react-hook-form-zod`, `vitest-testing`.
 - **Vercel Engineering** (qua secondsky) — `react-best-practices`, `react-composition-patterns`.
 - **Managed Code** ([managedcode/dotnet-skills](https://github.com/managedcode/dotnet-skills)) — nhóm .NET base (`aspnet-core`, `web-api`, `minimal-apis`, `entity-framework-core`, `optimizing-ef-core-queries`, `modern-csharp`, `dotnet`, `xunit`). Repo này embed sẵn các skill chính thức từ [dotnet/skills](https://github.com/dotnet/skills) (Microsoft) trong các thư mục `Official-DotNet-*`.
-- **Nội bộ** — bổ sung cho stack ASP.NET Core production-grade: `aspnet-mvc`, `blazor`, `aspnet-logging`, `aspnet-caching`, `aspnet-health-checks`, `background-jobs`, `aspnet-auth-advanced`, `dotnet-testing-patterns`. Workflow GitLab: `gitlab-flow`, `gitlab-sync`, `commit`, `review-branch`.
+- **Nội bộ** — bổ sung cho stack ASP.NET Core production-grade: `aspnet-mvc`, `blazor`, `aspnet-logging`, `aspnet-caching`, `aspnet-health-checks`, `background-jobs`, `aspnet-auth-advanced`, `dotnet-testing-patterns`. Workflow GitLab: `gitlab-sync` (cặp `gitlab-flow`/`commit`/`review-branch` đã tách sang repo [`my-skills-gitlab-flow`](https://github.com/nguyenvanchiens/my-skills-gitlab-flow)).
 
 ## License
 
